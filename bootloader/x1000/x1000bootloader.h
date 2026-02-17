@@ -87,6 +87,29 @@ struct uimage_header;
 # define OF_RECOVERY_ARGS \
     "mem=64M@0x0 no_console_suspend console=ttyS2,115200n8 lpj=5009408 ip=off"
 //# define OF_RECOVERY_BTN    (BUTTON_PREV|BUTTON_NEXT)
+#elif defined(SHANLING_M0PRO)
+# define BL_RECOVERY        BUTTON_VOL_UP
+# define BL_UP              BUTTON_VOL_UP
+# define BL_DOWN            BUTTON_VOL_DOWN
+# define BL_SELECT          BUTTON_CENTER
+# define BL_QUIT            BUTTON_POWER
+# define BL_SCREENSHOT      BUTTON_TOPLEFT
+# define BL_UP_NAME         "VOL+"
+# define BL_DOWN_NAME       "VOL-"
+# define BL_SELECT_NAME     "TAP"
+# define BL_QUIT_NAME       "POWER"
+# define BL_SCREENSHOT_NAME "TOPLEFT"
+# define BOOTBACKUP_FILE    "/shanlingm0pro-boot.bin"
+# define OF_PLAYER_NAME     "Shanling player"
+# define OF_PLAYER_ADDR     0x140000
+# define OF_PLAYER_LENGTH   (6 * 1024 * 1024)
+# define OF_PLAYER_ARGS     OF_RECOVERY_ARGS \
+    " init=/linuxrc ubi.mtd=5 root=ubi0:rootfs ubi.mtd=6 rootfstype=ubifs rw"
+# define OF_PLAYER_BTN      BUTTON_VOL_DOWN
+# define OF_RECOVERY_ADDR   0x740000
+# define OF_RECOVERY_LENGTH (8 * 1024 * 1024)
+# define OF_RECOVERY_ARGS \
+    "mem=64M@0x0 no_console_suspend console=ttyS2,115200n8 lpj=5009408 ip=off"
 #elif defined(EROS_QN)
 # define BL_RECOVERY        BUTTON_VOL_UP
 # define BL_UP              BUTTON_SCROLL_BACK

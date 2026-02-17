@@ -158,6 +158,7 @@
 #define RG_NANO_PAD        77
 #define CTRU_PAD           78
 #define HIBY_R3PROII_PAD   79
+#define SHANLING_M0PRO_PAD 80
 
 /* CONFIG_REMOTE_KEYPAD */
 #define H100_REMOTE   1
@@ -274,6 +275,7 @@
 #define LCD_SHANLING_Q1   70 /* as used by the Shanling Q1 */
 #define LCD_EROSQ         71 /* as used by the ErosQ (native) */
 #define LCD_ECHO_R1       72 /* ILI9342, as used by the Echo R1 */
+#define LCD_SHANLING_M0PRO 73 /* as used by the Shanling M0 Pro */
 
 /* LCD_PIXELFORMAT */
 #define HORIZONTAL_PACKING 1
@@ -567,6 +569,8 @@ Lyre prototype 1 */
 #include "config/aigoerosq.h"
 #elif defined(SHANLING_Q1)
 #include "config/shanlingq1.h"
+#elif defined(SHANLING_M0PRO)
+#include "config/shanlingm0pro.h"
 #elif defined(EROS_QN)
 #include "config/erosqnative.h"
 #elif defined(ECHO_R1)

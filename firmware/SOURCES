@@ -1801,6 +1801,15 @@ target/mips/ingenic_x1000/shanlingq1/power-shanlingq1.c
 target/mips/ingenic_x1000/spl-nand-x1000.c
 #endif /* SHANLING_Q1 */
 
+#if defined(SHANLING_M0PRO)
+target/mips/ingenic_x1000/shanlingm0pro/audiohw-shanlingm0pro.c
+target/mips/ingenic_x1000/shanlingm0pro/backlight-shanlingm0pro.c
+target/mips/ingenic_x1000/shanlingm0pro/button-shanlingm0pro.c
+target/mips/ingenic_x1000/shanlingm0pro/lcd-shanlingm0pro.c
+target/mips/ingenic_x1000/shanlingm0pro/power-shanlingm0pro.c
+target/mips/ingenic_x1000/spl-nand-x1000.c
+#endif /* SHANLING_M0PRO */
+
 #if defined(EROS_QN)
 target/mips/ingenic_x1000/erosqnative/audiohw-erosqnative.c
 target/mips/ingenic_x1000/erosqnative/backlight-erosqnative.c
@@ -2067,6 +2076,9 @@ drivers/axp-2101.c
 #endif
 #ifdef HAVE_FT6x06
 drivers/ft6x06.c
+#endif
+#ifdef HAVE_HYNITRON
+drivers/hynitron-cst.c
 #endif
 #ifdef HAVE_CW2015
 drivers/cw2015.c

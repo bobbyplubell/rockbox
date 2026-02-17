@@ -171,6 +171,9 @@ extern bool dbg_fiiom3k_touchpad(void);
 #ifdef SHANLING_Q1
 extern bool dbg_shanlingq1_touchscreen(void);
 #endif
+#ifdef SHANLING_M0PRO
+extern bool dbg_shanlingm0pro_touchscreen(void);
+#endif
 #ifdef HAVE_AXP_PMU
 extern bool axp_debug_menu(void);
 #endif
@@ -194,6 +197,9 @@ static const struct {
 #endif
 #ifdef SHANLING_Q1
     {"Touchscreen", &dbg_shanlingq1_touchscreen},
+#endif
+#ifdef SHANLING_M0PRO
+    {"Touchscreen", &dbg_shanlingm0pro_touchscreen},
 #endif
 #ifdef HAVE_AXP_PMU
     {"Power stats", &axp_debug_menu},

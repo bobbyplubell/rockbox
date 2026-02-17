@@ -47,6 +47,11 @@
 # define SPL_ERROR_PIN          GPIO_PC(25)
 # define BOOT_STORAGE_ADDR      0x6800
 # define BOOT_STORAGE_SIZE      (102 * 1024)
+#elif defined(SHANLING_M0PRO)
+# define SPL_DDR_MEMORYSIZE     64
+# define SPL_ERROR_PIN          GPIO_PC(25)  /* backlight PWM pin */
+# define BOOT_STORAGE_ADDR      0x6800
+# define BOOT_STORAGE_SIZE      (102 * 1024)
 #elif defined(EROS_QN)
 # define SPL_DDR_MEMORYSIZE     32
 # define SPL_ERROR_PIN          GPIO_PC(25)

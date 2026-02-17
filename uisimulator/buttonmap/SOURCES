@@ -83,6 +83,8 @@ erosq.c
 fiio-m3k.c
 #elif CONFIG_KEYPAD == SHANLING_Q1_PAD
 shanling-q1.c
+#elif CONFIG_KEYPAD == SHANLING_M0PRO_PAD
+shanling-q1.c
 #elif CONFIG_KEYPAD == RG_NANO_PAD
 rg-nano.c
 #elif CONFIG_KEYPAD == HIBY_R3PROII_PAD

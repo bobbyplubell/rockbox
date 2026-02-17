@@ -504,6 +504,13 @@
 #define UI_LCD_POSX                 46
 #define UI_LCD_POSY                 61
 
+#elif defined(SHANLING_M0PRO)
+#define UI_TITLE                    "Shanling M0 Pro"
+#define UI_WIDTH                    340
+#define UI_HEIGHT                   380
+#define UI_LCD_POSX                 50
+#define UI_LCD_POSY                 70
+
 #elif defined(RG_NANO)
 #define UI_TITLE                    "Anbernic RG Nano"
 #define UI_WIDTH                    370

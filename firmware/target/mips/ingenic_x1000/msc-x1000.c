@@ -53,7 +53,7 @@ static const msc_config msc_configs[] = {
         .cd_gpio = GPIO_MSC0_CD,
         .cd_active_level = 0,
     },
-#elif defined(SHANLING_Q1)
+#elif defined(SHANLING_Q1) || defined(SHANLING_M0PRO)
 #define MSC_CLOCK_SOURCE  X1000_CLK_MPLL
     {
         .msc_nr = 0,
@@ -63,7 +63,7 @@ static const msc_config msc_configs[] = {
         .cd_gpio = GPIO_MSC0_CD,
         .cd_active_level = 0,
     },
-    /* NOTE: SDIO wifi card is on msc1 */
+    /* NOTE: SDIO wifi card is on msc1 (Q1 only) */
 #elif defined(EROS_QN)
 #define MSC_CLOCK_SOURCE X1000_CLK_SCLK_A
     {

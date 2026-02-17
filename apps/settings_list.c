@@ -95,7 +95,8 @@
  || defined(ONDA_VX747)  \
  || defined(ONDA_VX767)  \
  || defined(ONDA_VX747P) \
- || defined(ONDA_VX777)
+ || defined(ONDA_VX777)  \
+ || defined(SHANLING_M0PRO)
 #define DEFAULT_TOUCHSCREEN_MODE TOUCHSCREEN_POINT
 #else
 #define DEFAULT_TOUCHSCREEN_MODE TOUCHSCREEN_BUTTON

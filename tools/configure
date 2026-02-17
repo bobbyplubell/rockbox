@@ -1728,6 +1728,7 @@ cat <<EOF
                            241) X3                     (hw4 bl only)
  ==Shanling==              242) X3II
  260) Q1                   243) X20              ==HiBy==
+ 261) M0 Pro
                                                  300) R3 Pro II
  ==Echo project==          ==Surfans==           301) R1
  270) Echo R1 (WIP)        280) F28 (WIP)
@@ -4088,6 +4089,27 @@ fi
     t_cpu="mips"
     t_manufacturer="ingenic_x1000"
     t_model="shanlingq1"
+    ;;
+
+    261|shanlingm0pro)
+    target_id=125
+    modelname="shanlingm0pro"
+    target="SHANLING_M0PRO"
+    memory=64
+    mipsr2elcc
+    appextra="recorder:gui"
+    plugins="yes"
+    tool="$rootdir/tools/scramble -add=m0p "
+    boottool="$rootdir/tools/mkspl-x1000 -type=nand -ppb=2 -bpp=2 "
+    output="rockbox.m0pro"
+    bootoutput="bootloader.m0pro"
+    sysfontbl="16-Terminus"
+    toolset="$x1000tools"
+    bmp2rb_mono="$rootdir/tools/bmp2rb -f 0"
+    bmp2rb_native="$rootdir/tools/bmp2rb -f 4"
+    t_cpu="mips"
+    t_manufacturer="ingenic_x1000"
+    t_model="shanlingm0pro"
     ;;
 
     270|echor1)

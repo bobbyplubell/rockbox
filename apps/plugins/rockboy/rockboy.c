@@ -458,7 +458,7 @@ static void setoptions (void)
         options.SELECT  = BUTTON_VOL_UP;
         options.MENU    = BUTTON_POWER;
 
-#elif CONFIG_KEYPAD == SHANLING_Q1_PAD || CONFIG_KEYPAD == HIBY_R3PROII_PAD
+#elif CONFIG_KEYPAD == SHANLING_Q1_PAD || CONFIG_KEYPAD == SHANLING_M0PRO_PAD || CONFIG_KEYPAD == HIBY_R3PROII_PAD
         /* use touchscreen */
 
 #elif CONFIG_KEYPAD == MA_PAD
