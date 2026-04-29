@@ -1,0 +1,18 @@
+# Shanling M0 Pro status bar skin
+# 22px tall to match SYSFONT_HEIGHT (22-Terminus-Bold).
+# Layout (left → right): battery%   play_state   HH:MM   hold?   vol-bar
+#
+# Preload icons (x,y are draw position relative to the rendering viewport)
+%xl(P,playstate-sb-16x16.bmp,75,3,5)
+%xl(L,hold-sb-16x16.bmp,150,3)
+#
+# Status bar viewport: full width, 22px tall, font 0 = UI font (theme: 22-Terminus-Bold)
+%V(0,0,240,22,0)
+%al%bl%%
+%ac%cH:%cM
+%pv(180,4,52,14,-)
+%?mp<|%xd(Pb)|%xd(Pc)|%xd(Pd)|%xd(Pe)>
+%?mh<%xd(L)>
+#
+# Main UI viewport — everything below the bar
+%Vi(-,0,22,-,-,1)

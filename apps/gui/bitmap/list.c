@@ -734,18 +734,9 @@ unsigned gui_synclist_do_touchscreen(struct gui_synclist *list)
     switch (gevent.id)
     {
     case GESTURE_NONE:
-#if defined(SHANLING_M0PRO)
-        /* Don't move selection on initial press-before-classification —
-         * otherwise the row under the finger is highlighted before the
-         * drag threshold is crossed, leaving a stale selection visible
-         * after the drag-scroll completes. Selection updates only on a
-         * confirmed TAP (release without drag) or LONG_PRESS. */
-        break;
-#else
         if (!action_gesture_is_pressed())
             break;
         /* fallthrough */
-#endif
 
     case GESTURE_TAP:
     case GESTURE_LONG_PRESS:

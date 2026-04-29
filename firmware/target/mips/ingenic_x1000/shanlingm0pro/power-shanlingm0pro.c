@@ -62,6 +62,13 @@ void power_init(void)
 
     axp2101_init();
 
+    /* Trigger a fuel-gauge reset so the IC re-derives SoC from current
+     * voltage instead of carrying stale state from the prior boot. REG 0x17
+     * bit 3 is RWAC (auto-clears once the reset completes); the gauge
+     * enable in REG 0x18 bit 3 is on by default so we don't touch 0x18. */
+    i2c_reg_write1(AXP_PMU_BUS, AXP_PMU_ADDR,
+                   AXP2101_REG_FUELGAUGERESET, 0x08);
+
     /* Enable required ADCs */
     axp2101_adc_set_enabled(
         (1 << AXP2101_ADC_VBAT_VOLTAGE) |

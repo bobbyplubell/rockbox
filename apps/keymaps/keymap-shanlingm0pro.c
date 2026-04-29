@@ -55,6 +55,7 @@ static const struct button_mapping button_context_wps[] = {
     {ACTION_WPS_VOLDOWN,        BUTTON_VOL_DOWN,                    BUTTON_NONE},
     {ACTION_WPS_VOLDOWN,        BUTTON_VOL_DOWN|BUTTON_REPEAT,      BUTTON_NONE},
     {ACTION_STD_KEYLOCK,        BUTTON_POWER|BUTTON_REL,            BUTTON_POWER},
+    {ACTION_WPS_BROWSE,         BUTTON_POWER|BUTTON_REL,            BUTTON_POWER|BUTTON_REPEAT},
     LAST_ITEM_IN_LIST
 }; /* button_context_wps */
 
@@ -81,6 +82,18 @@ static const struct button_mapping button_context_settings[] = {
     LAST_ITEM_IN_LIST
 }; /* button_context_settings */
 
+static const struct button_mapping button_context_time[] = {
+    {ACTION_SETTINGS_INC,       BUTTON_VOL_UP,                      BUTTON_NONE},
+    {ACTION_SETTINGS_INCREPEAT, BUTTON_VOL_UP|BUTTON_REPEAT,        BUTTON_NONE},
+    {ACTION_SETTINGS_DEC,       BUTTON_VOL_DOWN,                    BUTTON_NONE},
+    {ACTION_SETTINGS_DECREPEAT, BUTTON_VOL_DOWN|BUTTON_REPEAT,      BUTTON_NONE},
+    {ACTION_STD_PREV,           BUTTON_MIDLEFT|BUTTON_REL,          BUTTON_MIDLEFT},
+    {ACTION_STD_NEXT,           BUTTON_MIDRIGHT|BUTTON_REL,         BUTTON_MIDRIGHT},
+    {ACTION_STD_OK,             BUTTON_CENTER|BUTTON_REL,           BUTTON_CENTER},
+    {ACTION_STD_CANCEL,         BUTTON_POWER|BUTTON_REL,            BUTTON_POWER},
+    LAST_ITEM_IN_LIST
+}; /* button_context_time */
+
 const struct button_mapping* target_get_context_mapping(int context)
 {
     switch (context & ~CONTEXT_LOCKED)
@@ -101,8 +114,9 @@ const struct button_mapping* target_get_context_mapping(int context)
         case CONTEXT_SETTINGS:
         case CONTEXT_SETTINGS_EQ:
         case CONTEXT_SETTINGS_COLOURCHOOSER:
-        case CONTEXT_SETTINGS_TIME:
         case CONTEXT_SETTINGS_RECTRIGGER:
             return button_context_settings;
+        case CONTEXT_SETTINGS_TIME:
+            return button_context_time;
     }
 }

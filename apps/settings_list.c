@@ -329,8 +329,13 @@ static const int backlight_fade[] = {0,100,200,300,500,1000,2000,3000,5000,10000
 static const char graphic_numeric[] = "graphic,numeric";
 
 /* Default theme settings */
+#ifdef SHANLING_M0PRO
+#define DEFAULT_WPSNAME  "m0pro"
+#define DEFAULT_SBSNAME  "m0pro"
+#else
 #define DEFAULT_WPSNAME  "cabbiev2"
 #define DEFAULT_SBSNAME  "-"
+#endif
 #define DEFAULT_FMS_NAME "cabbiev2"
 
 #if LCD_HEIGHT <= 64
@@ -346,11 +351,7 @@ static const char graphic_numeric[] = "graphic,numeric";
 #elif LCD_HEIGHT <= 220
   #define DEFAULT_FONT_HEIGHT 12
 #elif LCD_HEIGHT <= 240
-  #ifdef SHANLING_M0PRO
-    #define DEFAULT_FONT_HEIGHT 21
-  #else
-    #define DEFAULT_FONT_HEIGHT 15
-  #endif
+  #define DEFAULT_FONT_HEIGHT 15
 #elif LCD_HEIGHT <= 320
   #define DEFAULT_FONT_HEIGHT 18
 #elif defined(SHANLING_Q1)

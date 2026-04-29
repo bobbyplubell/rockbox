@@ -245,3 +245,37 @@ ui viewport: -
 </remote>
 
 </theme>
+
+
+<theme>
+Name: m0pro
+# Default theme for Shanling M0 Pro — fork of cabbiev2 with target-specific
+# touch regions in the WPS and a custom status bar.
+Authors: Shanling M0 Pro port. Based on cabbiev2 (see /rockbox/wps/AUTHORS).
+WPS: yes
+SBS: yes
+FMS: no
+RWPS: no
+RSBS: no
+RFMS: no
+
+<main>
+wps.240x240x(16|24|32):  m0pro.240x240x16.wps
+sbs.240x240x(16|24|32):  m0pro.240x240x16.sbs
+Font.240x240x(16|24|32): 22-Terminus-Bold.fnt
+
+backdrop: -
+
+selector type..+x(16|24|32): bar (gradient)
+iconset.240x240x(16|24|32):  icons/tango_icons.16x16.bmp
+viewers iconset.240x240x(16|24|32): icons/tango_icons_viewers.16x16.bmp
+
+show icons: on
+statusbar: custom
+ui viewport: -
+list separator height: 0
+list separator color: 2D5A3D
+foreground color: FFE5B4
+background color: 1B4332
+</main>
+</theme>
