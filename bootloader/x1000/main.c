@@ -31,6 +31,7 @@
 #include "usb.h"
 #include "i2c-x1000.h"
 #include "boot-x1000.h"
+#include "gpio-x1000.h"
 #include <stdbool.h>
 
 static int read_btn(void)
@@ -89,21 +90,57 @@ void main(uint32_t saved_cpm_scratch)
 
     /* Normal boot - if it fails, we bail to the recovery menu */
     if(!recovery_mode) {
+#ifdef SHANLING_M0PRO
+        /* USB connected at boot → go to recovery for flashing */
+        if(gpio_get_level(GPIO_USB_DETECT))
+            recovery_mode = true;
+
+        if(!recovery_mode) {
+            /* M0 Pro has no dedicated recovery button — the encoder can't be
+             * read as a held state at boot. Instead, show a prompt on screen
+             * and enter recovery only if POWER is held past the threshold. */
+            init_lcd();
+            long deadline = current_tick + 2*HZ;
+            while(read_btn() & BUTTON_POWER) {
+                if(TIME_AFTER(current_tick, deadline)) {
+                    recovery_mode = true;
+                    break;
+                }
+                long secs = (deadline - current_tick + HZ - 1) / HZ;
+                splashf(0, "Booting...\nHold POWER for recovery (%lds)", secs);
+            }
+            if(!recovery_mode)
+                boot_rockbox();
+        }
+        /* Power-on or 2-second hold leaves BUTTON_POWER|BUTTON_REPEAT events
+         * in the queue, and releasing POWER posts a late BUTTON_POWER|BUTTON_REL.
+         * Drain events for a short window after release so neither survives
+         * into recovery_menu() (BL_QUIT match → shutdown, BL_SELECT match
+         * → instantly picks the first menu item). */
+        while(read_btn() & BUTTON_POWER)
+            splashf(0, "Entering recovery...");
+        button_clear_queue();
+        long drain_until = current_tick + HZ/4;
+        while(TIME_BEFORE(current_tick, drain_until))
+            button_get_w_tmo(drain_until - current_tick);
+        button_clear_queue();
+#else
         int btn = read_btn();
         btn &= ~BUTTON_POWER; /* ignore power button */
 
         if(btn == BL_RECOVERY)
             recovery_mode = true;
-#if defined(OF_PLAYER_BTN)
+# if defined(OF_PLAYER_BTN)
         else if(btn == OF_PLAYER_BTN)
             boot_of_player();
-#endif
-#if defined(OF_RECOVERY_BTN)
+# endif
+# if defined(OF_RECOVERY_BTN)
         else if(btn == OF_RECOVERY_BTN)
             boot_of_recovery();
-#endif
+# endif
         else
             boot_rockbox();
+#endif
     }
 
     /* This function does not return. */

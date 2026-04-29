@@ -91,13 +91,13 @@ struct uimage_header;
 # define BL_RECOVERY        BUTTON_VOL_UP
 # define BL_UP              BUTTON_VOL_UP
 # define BL_DOWN            BUTTON_VOL_DOWN
-# define BL_SELECT          BUTTON_CENTER
-# define BL_QUIT            BUTTON_POWER
+# define BL_SELECT          (BUTTON_POWER|BUTTON_REL)
+# define BL_QUIT            (BUTTON_POWER|BUTTON_REPEAT)
 # define BL_SCREENSHOT      BUTTON_TOPLEFT
 # define BL_UP_NAME         "VOL+"
 # define BL_DOWN_NAME       "VOL-"
-# define BL_SELECT_NAME     "TAP"
-# define BL_QUIT_NAME       "POWER"
+# define BL_SELECT_NAME     "POWER"
+# define BL_QUIT_NAME       "POWER+hold"
 # define BL_SCREENSHOT_NAME "TOPLEFT"
 # define BOOTBACKUP_FILE    "/shanlingm0pro-boot.bin"
 # define OF_PLAYER_NAME     "Shanling player"

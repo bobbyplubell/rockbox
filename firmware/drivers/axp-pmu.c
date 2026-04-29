@@ -551,7 +551,9 @@ bool axp_debug_menu(void)
 unsigned int power_input_status(void)
 {
     unsigned int state = 0;
-#if defined(EROS_QN)
+#if defined(SHANLING_M0PRO)
+    return axp2101_power_input_status();
+#elif defined(EROS_QN)
     int devicever;
 # if defined(BOOTLOADER)
     devicever = EROSQN_VER;

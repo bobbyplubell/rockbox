@@ -27,6 +27,7 @@
 #include "file.h"
 #include "linuxboot.h"
 #include "boot-x1000.h"
+#include "gpio-x1000.h"
 #include <ctype.h>
 #include <sys/types.h>
 #if defined(EROS_QN)
@@ -42,6 +43,17 @@ void boot_rockbox(void)
         return;
 
     gui_shutdown();
+
+#ifdef SHANLING_M0PRO
+    /* Disarm touch and encoder GPIO IRQs before jumping to Rockbox.
+     * system_init_irq() unmasks all GPIO banks unconditionally, but
+     * button_init() runs after enable_irq(). A spurious IRQ in that
+     * window hits UIRQ -> panicf -> hang at the Rockbox splash. */
+    gpio_disable_irq(GPIO_HYNITRON_INTERRUPT);
+    gpio_disable_irq(GPIO_WHEEL1);
+    gpio_disable_irq(GPIO_WHEEL2);
+#endif
+
     x1000_boot_rockbox(core_get_data(handle), length);
 }
 

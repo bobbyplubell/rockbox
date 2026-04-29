@@ -41,8 +41,9 @@ static const struct button_mapping button_context_standard[] = {
     {ACTION_STD_NEXT,           BUTTON_VOL_DOWN,                    BUTTON_NONE},
     {ACTION_STD_NEXTREPEAT,     BUTTON_VOL_DOWN|BUTTON_REPEAT,      BUTTON_NONE},
     {ACTION_STD_OK,             BUTTON_CENTER|BUTTON_REL,           BUTTON_CENTER},
+    {ACTION_STD_OK,             BUTTON_POWER|BUTTON_REL,            BUTTON_POWER},
     {ACTION_STD_CONTEXT,        BUTTON_CENTER|BUTTON_REPEAT,        BUTTON_CENTER},
-    {ACTION_STD_CANCEL,         BUTTON_POWER|BUTTON_REL,            BUTTON_POWER},
+    {ACTION_STD_CANCEL,         BUTTON_POWER|BUTTON_REL,            BUTTON_POWER|BUTTON_REPEAT},
     LAST_ITEM_IN_LIST
 }; /* button_context_standard */
 
@@ -53,13 +54,6 @@ static const struct button_mapping button_context_wps[] = {
     {ACTION_WPS_VOLUP,          BUTTON_VOL_UP|BUTTON_REPEAT,        BUTTON_NONE},
     {ACTION_WPS_VOLDOWN,        BUTTON_VOL_DOWN,                    BUTTON_NONE},
     {ACTION_WPS_VOLDOWN,        BUTTON_VOL_DOWN|BUTTON_REPEAT,      BUTTON_NONE},
-    {ACTION_WPS_SKIPNEXT,       BUTTON_MIDRIGHT|BUTTON_REL,         BUTTON_MIDRIGHT},
-    {ACTION_WPS_SKIPPREV,       BUTTON_MIDLEFT|BUTTON_REL,          BUTTON_MIDLEFT},
-    {ACTION_WPS_SEEKFWD,        BUTTON_MIDRIGHT|BUTTON_REPEAT,      BUTTON_NONE},
-    {ACTION_WPS_STOPSEEK,       BUTTON_MIDRIGHT|BUTTON_REL,         BUTTON_MIDRIGHT|BUTTON_REPEAT},
-    {ACTION_WPS_SEEKBACK,       BUTTON_MIDLEFT|BUTTON_REPEAT,       BUTTON_NONE},
-    {ACTION_WPS_STOPSEEK,       BUTTON_MIDLEFT|BUTTON_REL,          BUTTON_MIDLEFT|BUTTON_REPEAT},
-    {ACTION_WPS_BROWSE,         BUTTON_TOPMIDDLE|BUTTON_REL,        BUTTON_TOPMIDDLE},
     {ACTION_STD_KEYLOCK,        BUTTON_POWER|BUTTON_REL,            BUTTON_POWER},
     LAST_ITEM_IN_LIST
 }; /* button_context_wps */
@@ -69,8 +63,9 @@ static const struct button_mapping button_context_list[] = {
 }; /* button_context_list */
 
 static const struct button_mapping button_context_yesno[] = {
-    {ACTION_YESNO_ACCEPT,       BUTTON_CENTER,                      BUTTON_NONE},
-    {ACTION_STD_CANCEL,         BUTTON_POWER,                       BUTTON_NONE},
+    {ACTION_YESNO_ACCEPT,       BUTTON_CENTER|BUTTON_REL,           BUTTON_CENTER},
+    {ACTION_YESNO_ACCEPT,       BUTTON_POWER|BUTTON_REL,            BUTTON_POWER},
+    {ACTION_STD_CANCEL,         BUTTON_POWER|BUTTON_REL,            BUTTON_POWER|BUTTON_REPEAT},
     LAST_ITEM_IN_LIST__NEXTLIST(CONTEXT_STD)
 }; /* button_context_yesno */
 
@@ -80,7 +75,9 @@ static const struct button_mapping button_context_settings[] = {
     {ACTION_SETTINGS_DEC,       BUTTON_VOL_DOWN,                    BUTTON_NONE},
     {ACTION_SETTINGS_DECREPEAT, BUTTON_VOL_DOWN|BUTTON_REPEAT,      BUTTON_NONE},
     {ACTION_STD_OK,             BUTTON_CENTER|BUTTON_REL,           BUTTON_CENTER},
-    {ACTION_STD_CANCEL,         BUTTON_POWER|BUTTON_REL,            BUTTON_POWER},
+    {ACTION_STD_OK,             BUTTON_POWER|BUTTON_REL,            BUTTON_POWER},
+    {ACTION_STD_CANCEL,         BUTTON_POWER|BUTTON_REL,            BUTTON_POWER|BUTTON_REPEAT},
+    {ACTION_STD_CANCEL,         BUTTON_MIDRIGHT|BUTTON_REL,         BUTTON_MIDRIGHT},
     LAST_ITEM_IN_LIST
 }; /* button_context_settings */
 

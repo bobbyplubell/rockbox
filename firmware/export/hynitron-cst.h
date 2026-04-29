@@ -29,26 +29,27 @@
  * Modeled after the FT6x06 driver. Supports CST816S, CST816T, CST226SE
  * and similar Hynitron touch ICs commonly found in small displays. */
 
-/* CST816S gesture IDs */
-#define HYNITRON_GESTURE_NONE       0x00
-#define HYNITRON_GESTURE_SWIPE_UP   0x01
-#define HYNITRON_GESTURE_SWIPE_DOWN 0x02
-#define HYNITRON_GESTURE_SWIPE_LEFT 0x03
+/* CST816S hardware-detected gesture IDs (register 0x01).
+ * We disable hardware gesture recognition (MotionMask=0) and use Rockbox's
+ * software gesture engine instead, but the IDs are kept in case any future
+ * code wants to act on them. */
+#define HYNITRON_GESTURE_NONE        0x00
+#define HYNITRON_GESTURE_SWIPE_UP    0x01
+#define HYNITRON_GESTURE_SWIPE_DOWN  0x02
+#define HYNITRON_GESTURE_SWIPE_LEFT  0x03
 #define HYNITRON_GESTURE_SWIPE_RIGHT 0x04
-#define HYNITRON_GESTURE_SINGLE_TAP 0x05
-#define HYNITRON_GESTURE_DOUBLE_TAP 0x0B
-#define HYNITRON_GESTURE_LONG_PRESS 0x0C
+#define HYNITRON_GESTURE_SINGLE_TAP  0x05
+#define HYNITRON_GESTURE_DOUBLE_TAP  0x0B
+#define HYNITRON_GESTURE_LONG_PRESS  0x0C
 
-enum hynitron_event {
-    HYNITRON_EVT_NONE = -1,
-    HYNITRON_EVT_PRESS = 0,
-    HYNITRON_EVT_RELEASE = 1,
-    HYNITRON_EVT_CONTACT = 2,
-};
+/* CST816T per-point Event Flag values (XposH bits [7:6]).
+ * The CST816S does NOT have this field — bits are reserved there. */
+#define HYNITRON_EVT_PRESS    0   /* finger just touched down */
+#define HYNITRON_EVT_LIFT     1   /* finger lifted off */
+#define HYNITRON_EVT_HOLD     2   /* finger held or moving */
 
 struct hynitron_point {
     int event;
-    int touch_id;
     int pos_x;
     int pos_y;
 };

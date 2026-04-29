@@ -346,7 +346,11 @@ static const char graphic_numeric[] = "graphic,numeric";
 #elif LCD_HEIGHT <= 220
   #define DEFAULT_FONT_HEIGHT 12
 #elif LCD_HEIGHT <= 240
-  #define DEFAULT_FONT_HEIGHT 15
+  #ifdef SHANLING_M0PRO
+    #define DEFAULT_FONT_HEIGHT 21
+  #else
+    #define DEFAULT_FONT_HEIGHT 15
+  #endif
 #elif LCD_HEIGHT <= 320
   #define DEFAULT_FONT_HEIGHT 18
 #elif defined(SHANLING_Q1)

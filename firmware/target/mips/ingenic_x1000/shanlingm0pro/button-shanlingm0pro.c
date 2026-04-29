@@ -102,44 +102,34 @@ int button_read_device(int* data)
         reset_poweroff_timer();
     }
 
-    /* Map gestures to buttons (L/R swapped for X inversion) */
-    int gesture = hynitron_state.gesture;
-    static int last_gesture = HYNITRON_GESTURE_NONE;
-    if(gesture != HYNITRON_GESTURE_NONE && gesture != last_gesture) {
-        int gbtn = 0;
-        switch(gesture) {
-            case HYNITRON_GESTURE_SWIPE_LEFT:  gbtn = BUTTON_MIDRIGHT; break;
-            case HYNITRON_GESTURE_SWIPE_RIGHT: gbtn = BUTTON_MIDLEFT;  break;
-            case HYNITRON_GESTURE_SWIPE_UP:    gbtn = BUTTON_TOPMIDDLE; break;
-            case HYNITRON_GESTURE_SWIPE_DOWN:
-                gbtn = BUTTON_BOTTOMMIDDLE; break;
-        }
-        if(gbtn) {
-            button_queue_post(gbtn, 0);
-            button_queue_post(gbtn|BUTTON_REL, 0);
-            backlight_on();
-            reset_poweroff_timer();
-        }
-    }
-    last_gesture = gesture;
-
-    /* Touch point handling — skip if a swipe gesture is active */
-    if(gesture == HYNITRON_GESTURE_NONE) {
+    /* Pass raw touch coordinates to Rockbox's software gesture layer
+     * (apps/gesture.c) which handles tap, drag, drag-scroll and kinetic
+     * scrolling consistently. With IrqCtl EnChange set, the IC fires an
+     * interrupt on every coordinate change, queuing an async I2C read so
+     * coordinates are fresh by the time button_tick runs.
+     *
+     * Touch-held state is tracked locally and only cleared on an explicit
+     * Event=LIFT. Both nr_points and the per-point event field can flicker
+     * mid-drag (the IC briefly reports zero fingers while updating, or a
+     * stale event between IRQs); without this latch, button.c sees a
+     * release+press cycle and action.c starts a fresh TOUCHEVENT_PRESS,
+     * resetting the gesture origin to the current finger position so the
+     * 20-px drag threshold is never crossed. */
+    if(data) {
+        static bool touch_held = false;
         point = &hynitron_state.points[0];
-        int tx = (LCD_WIDTH - 1) - point->pos_x;
-        int ty = (LCD_HEIGHT - 1) - point->pos_y;
-        int t = touchscreen_to_pixels(tx, ty, data);
-        if(point->event == HYNITRON_EVT_PRESS ||
-           point->event == HYNITRON_EVT_CONTACT)
-            r |= t;
-    } else {
-        for(int i = 0; i < hynitron_state.nr_points; ++i) {
-            point = &hynitron_state.points[i];
+        int evt = point->event;
+
+        if(evt == HYNITRON_EVT_LIFT)
+            touch_held = false;
+        else if(evt == HYNITRON_EVT_PRESS || evt == HYNITRON_EVT_HOLD ||
+                hynitron_state.nr_points > 0)
+            touch_held = true;
+
+        if(touch_held) {
             int tx = (LCD_WIDTH - 1) - point->pos_x;
             int ty = (LCD_HEIGHT - 1) - point->pos_y;
-            if(point->event == HYNITRON_EVT_PRESS ||
-               point->event == HYNITRON_EVT_CONTACT)
-                r |= touchscreen_to_pixels(tx, ty, NULL);
+            r |= touchscreen_to_pixels(tx, ty, data);
         }
     }
 
@@ -218,8 +208,8 @@ bool dbg_shanlingm0pro_touchscreen(void)
             const struct hynitron_point* point = &hynitron_state.points[i];
             int cx = (LCD_WIDTH - 1) - point->pos_x;
             int cy = (LCD_HEIGHT - 1) - point->pos_y;
-            lcd_putsf(0, line++, "pt%d  id:%d  pos: %d,%d",
-                      i, point->touch_id, cx, cy);
+            lcd_putsf(0, line++, "pt%d evt:%d pos:%d,%d",
+                      i, point->event, cx, cy);
 
             int tx = box_x + cx * box_w / pad_w;
             int ty = box_y + cy * box_h / pad_h;

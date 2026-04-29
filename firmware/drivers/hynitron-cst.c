@@ -19,26 +19,46 @@
  *
  ****************************************************************************/
 
-/* Hynitron CST series capacitive touch controller driver.
+/* Hynitron CST816T capacitive touch controller driver.
  *
- * Register layout for CST816S/CST816T (common Hynitron touch ICs):
- *   0x01: Gesture ID
- *   0x02: Number of touch points
- *   0x03: XH (event flag [7:6], X position [11:8])
- *   0x04: XL (X position [7:0])
- *   0x05: YH (touch ID [7:4], Y position [11:8])
- *   0x06: YL (Y position [7:0])
- *   0xA7: Chip ID
- *   0xA9: Firmware version
+ * Register layout (per CST816T SDK Register Spec v1.3, 2023-05-18):
+ *   0x01: GestureID    — hardware-detected gesture (we disable these)
+ *   0x02: FingerNum    — touch presence (0 = no finger, 1 = one finger)
+ *   0x03: XposH        — bits [7:6] = Event Flag, bits [3:0] = X[11:8]
+ *                          Event 00=press, 01=lift, 10=hold/move, 11=rsvd
+ *   0x04: XposL        — X[7:0]
+ *   0x05: YposH        — bits [3:0] = Y[11:8]
+ *   0x06: YposL        — Y[7:0]
+ *   0xA7: ChipID       0xA8: ProjID       0xA9: FwVersion
+ *   0xE5: SleepMode    — write 0x03 to sleep
+ *   0xEC: MotionMask   — bit 0 = EnDClick (only gesture register on T)
+ *   0xFA: IrqCtl       — bit 6 = EnTouch, 5 = EnChange, 4 = EnMotion
+ *   0xFE: DisAutoSleep — non-zero (<0xF0) disables auto-sleep
  *
- * The register layout is very similar to the FocalTech FT6x06 series. */
+ * The register layout is similar to the FocalTech FT6x06 series, but the
+ * CST816S is NOT compatible (has no Event Flag in XposH).
+ *
+ * Touch presence is taken from FingerNum rather than the per-point Event
+ * Flag — simpler, robust, and works the same on S/T variants. */
 
 #include "hynitron-cst.h"
+#include "i2c-x1000.h"
 #include "kernel.h"
 #include "i2c-async.h"
 #include <string.h>
 
 #define BYTES_PER_POINT 4
+
+/* CST816S register addresses */
+#define HYN_REG_GESTURE     0x01
+#define HYN_REG_MOTIONMASK  0xEC
+#define HYN_REG_IRQCTL      0xFA
+#define HYN_REG_DISAUTOSLP  0xFE
+
+/* IrqCtl bits */
+#define HYN_IRQ_ENTOUCH     0x40  /* IRQ on touch detected */
+#define HYN_IRQ_ENCHANGE    0x20  /* IRQ on coordinate change */
+#define HYN_IRQ_ENMOTION    0x10  /* IRQ on hardware-detected gesture */
 
 #ifdef HYNITRON_SWAP_AXES
 # define POS_X pos_y
@@ -66,10 +86,11 @@ struct hynitron_state hynitron_state;
 static inline void hynitron_convert_point(const uint8_t* raw,
                                           struct hynitron_point* pt)
 {
-    pt->event    = (raw[0] >> 6) & 0x3;
-    pt->POS_X    = ((raw[0] & 0xf) << 8) | raw[1];
-    pt->touch_id = (raw[2] >> 4) & 0xf;
-    pt->POS_Y    = ((raw[2] & 0xf) << 8) | raw[3];
+    /* CST816T: XposH bits [7:6] = Event Flag, [3:0] = X[11:8].
+     *          YposH bits [3:0] = Y[11:8]. */
+    pt->event = (raw[0] >> 6) & 0x3;
+    pt->POS_X = ((raw[0] & 0xf) << 8) | raw[1];
+    pt->POS_Y = ((raw[2] & 0xf) << 8) | raw[3];
 }
 
 static void hynitron_i2c_callback(int status, i2c_descriptor* desc)
@@ -102,9 +123,6 @@ void hynitron_init(void)
     hyn_drv.event_cb = hynitron_dummy_event_cb;
 
     memset(&hynitron_state, 0, sizeof(struct hynitron_state));
-    hynitron_state.gesture = -1;
-    for(int i = 0; i < HYNITRON_NUM_POINTS; ++i)
-        hynitron_state.points[i].event = HYNITRON_EVT_NONE;
 
     /* Reserve bus management cookie */
     hyn_drv.i2c_cookie = i2c_async_reserve_cookies(HYNITRON_BUS, 1);
@@ -122,7 +140,22 @@ void hynitron_init(void)
     hyn_drv.i2c_desc.next       = NULL;
 
     /* Start reading from register 0x01 (gesture) */
-    hyn_drv.raw_data[0] = 0x01;
+    hyn_drv.raw_data[0] = HYN_REG_GESTURE;
+
+    /* IrqCtl: fire IRQ on touch detected AND on every coordinate change.
+     * EnChange is what enables continuous motion tracking — without it the
+     * IC only interrupts on touch-down/lift, freezing coordinates mid-drag. */
+    i2c_reg_write1(HYNITRON_BUS, HYNITRON_ADDR, HYN_REG_IRQCTL,
+                   HYN_IRQ_ENTOUCH | HYN_IRQ_ENCHANGE);
+
+    /* MotionMask=0: disable hardware gesture recognition (LR-scroll,
+     * UD-scroll, double-click). Rockbox's software gesture engine handles
+     * these consistently; running both produces conflicting events. */
+    i2c_reg_write1(HYNITRON_BUS, HYNITRON_ADDR, HYN_REG_MOTIONMASK, 0);
+
+    /* Disable auto-sleep so the IC keeps reporting during long touches
+     * (default sleeps after 2s of no touch — a held finger can hit this). */
+    i2c_reg_write1(HYNITRON_BUS, HYNITRON_ADDR, HYN_REG_DISAUTOSLP, 1);
 }
 
 void hynitron_set_event_cb(void(*cb)(struct hynitron_state *state))
@@ -132,9 +165,10 @@ void hynitron_set_event_cb(void(*cb)(struct hynitron_state *state))
 
 void hynitron_enable(bool en)
 {
-    /* CST816S sleep mode: write 0x03 to register 0xA5
-     * Wake: write 0x00 to register 0xA5 (or toggle reset pin) */
-    i2c_reg_write1(HYNITRON_BUS, HYNITRON_ADDR, 0xa5, en ? 0 : 3);
+    /* CST816T SleepMode @0xE5: write 0x03 to enter sleep (no touch wake).
+     * Toggle the reset pin to wake. */
+    if(!en)
+        i2c_reg_write1(HYNITRON_BUS, HYNITRON_ADDR, 0xE5, 0x03);
 }
 
 void hynitron_irq_handler(void)

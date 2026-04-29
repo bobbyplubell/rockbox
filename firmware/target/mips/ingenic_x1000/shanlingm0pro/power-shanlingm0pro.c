@@ -121,9 +121,11 @@ void adc_init(void)
 
 void power_off(void)
 {
+#ifndef BOOTLOADER
     /* Mute and shut down DAC to avoid pop */
     audiohw_close();
     mdelay(100);
+#endif
 
     axp2101_power_off();
     while(1);
