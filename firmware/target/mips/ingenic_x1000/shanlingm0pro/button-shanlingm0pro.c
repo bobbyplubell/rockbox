@@ -82,24 +82,42 @@ int button_read_device(int* data)
     uint32_t b = REG_GPIO_PIN(GPIO_B);
     if((b & (1 << 31)) == 0) r |= BUTTON_POWER;
 
-    /* Check the wheel */
-    int wheel_btn = 0;
+    /* Check the wheel.
+     *
+     * Pattern adapted from the Sansa AMS scrollwheel driver
+     * (firmware/target/arm/as3525/scrollwheel-as3525.c): self-pace by only
+     * posting when the button queue has fully drained, preserve any leftover
+     * quadrature in wheel_pos for the next tick (no event loss), and tag
+     * fast spins with BUTTON_REPEAT so the keymap can route them
+     * differently. The previous implementation posted at most one event per
+     * tick and zeroed wheel_pos, silently dropping accumulated motion when
+     * the consumer (e.g. WPS volume changes that hit the codec) lagged
+     * behind the encoder. Also: no BUTTON_REL — apps/action.c special-cases
+     * scrollwheel buttons via HAVE_SCROLLWHEEL and treats them as
+     * auto-completed without a release. */
     int whpos = wheel_pos;
-    if(whpos > 3)
-        wheel_btn = BUTTON_VOL_DOWN;
-    else if(whpos < -3)
-        wheel_btn = BUTTON_VOL_UP;
+    if(whpos >= 4 || whpos <= -4) {
+        static long last_wheel_post = 0;
 
-    if(wheel_btn) {
-        wheel_pos = 0;
+        /* Wait for the consumer to drain before posting again. wheel_pos is
+         * left untouched so accumulated detents are preserved. */
+        if(button_queue_empty()) {
+            int wheel_btn = (whpos > 0) ? BUTTON_VOL_DOWN : BUTTON_VOL_UP;
 
-        /* Post the event (rapid motion is more reliable this way) */
-        button_queue_post(wheel_btn, 0);
-        button_queue_post(wheel_btn|BUTTON_REL, 0);
+            /* Tag rapid spins as REPEAT (matches Sansa AMS behavior). */
+            if(TIME_BEFORE(current_tick, last_wheel_post + HZ/10))
+                wheel_btn |= BUTTON_REPEAT;
 
-        /* Poke the backlight */
-        backlight_on();
-        reset_poweroff_timer();
+            /* Consume one detent (4 quadrature units), keep the remainder. */
+            wheel_pos = (whpos > 0) ? whpos - 4 : whpos + 4;
+            last_wheel_post = current_tick;
+
+            button_queue_post(wheel_btn, 0);
+
+            /* Poke the backlight */
+            backlight_on();
+            reset_poweroff_timer();
+        }
     }
 
     /* Pass raw touch coordinates to Rockbox's software gesture layer
@@ -120,10 +138,12 @@ int button_read_device(int* data)
         point = &hynitron_state.points[0];
         int evt = point->event;
 
-        if(evt == HYNITRON_EVT_LIFT)
+        /* Gate on FingerNum, not the per-point event byte: at boot the
+         * zeroed state has event==0 which collides with HYNITRON_EVT_PRESS,
+         * latching a phantom touch at (0,0) before the IC has been read. */
+        if(hynitron_state.nr_points == 0 || evt == HYNITRON_EVT_LIFT)
             touch_held = false;
-        else if(evt == HYNITRON_EVT_PRESS || evt == HYNITRON_EVT_HOLD ||
-                hynitron_state.nr_points > 0)
+        else
             touch_held = true;
 
         if(touch_held) {

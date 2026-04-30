@@ -142,6 +142,11 @@ void hynitron_init(void)
     /* Start reading from register 0x01 (gesture) */
     hyn_drv.raw_data[0] = HYN_REG_GESTURE;
 
+    hynitron_configure_regs();
+}
+
+void hynitron_configure_regs(void)
+{
     /* IrqCtl: fire IRQ on touch detected AND on every coordinate change.
      * EnChange is what enables continuous motion tracking — without it the
      * IC only interrupts on touch-down/lift, freezing coordinates mid-drag. */
@@ -165,10 +170,23 @@ void hynitron_set_event_cb(void(*cb)(struct hynitron_state *state))
 
 void hynitron_enable(bool en)
 {
-    /* CST816T SleepMode @0xE5: write 0x03 to enter sleep (no touch wake).
-     * Toggle the reset pin to wake. */
-    if(!en)
-        i2c_reg_write1(HYNITRON_BUS, HYNITRON_ADDR, 0xE5, 0x03);
+    /* Use the IC's auto-sleep (DisAutoSleep @0xFE), NOT SleepMode @0xE5.
+     * SleepMode=0x03 is deep sleep that can only be woken via the reset
+     * pin, and the reset wipes IrqCtl/MotionMask/DisAutoSleep — and doing
+     * the reset pulse + I2C reconfigure on every keylock toggle (this is
+     * called from action.c:do_key_lock) wedged the I2C bus, freezing
+     * touch and the wheel encoder together.
+     *
+     * Auto-sleep is a light sleep that preserves all registers and the
+     * IC auto-wakes on the next touch. A single I2C write per transition,
+     * matching the FT6x06 pattern this driver was modeled on. The
+     * driver-layer `touch_enabled` flag in firmware/drivers/touchscreen.c
+     * filters spurious wakes during keylock.
+     *
+     * Default DisAutoSleep at init is 1 (auto-sleep disabled) so a held
+     * finger never trips the ~2s timer during normal use. On disable we
+     * flip it to 0 to allow the IC to sleep itself. */
+    i2c_reg_write1(HYNITRON_BUS, HYNITRON_ADDR, HYN_REG_DISAUTOSLP, en ? 1 : 0);
 }
 
 void hynitron_irq_handler(void)

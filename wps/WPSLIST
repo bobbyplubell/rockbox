@@ -273,9 +273,11 @@ viewers iconset.240x240x(16|24|32): icons/tango_icons_viewers.16x16.bmp
 show icons: on
 statusbar: custom
 ui viewport: -
-list separator height: 0
-list separator color: 2D5A3D
-foreground color: FFE5B4
-background color: 1B4332
+scrollbar width: 19
+list padding: 2
+list separator height: auto
+list separator color: 295939
+foreground color: ffe7b5
+background color: 184131
 </main>
 </theme>

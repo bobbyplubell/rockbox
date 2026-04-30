@@ -854,16 +854,38 @@ long gui_wps_show(void)
 
             case ACTION_WPS_VOLUP: /* fall through */
             case ACTION_WPS_VOLDOWN:
+#ifdef SHANLING_M0PRO
+                /* Wheel detents are cheap; bump 2 steps per detent so a
+                 * casual spin covers the volume range comfortably, and
+                 * 4 steps when the driver tagged the event as REPEAT
+                 * (rapid spin) for a coarse fast-scroll. */
+            {
+                int step = (button == ACTION_WPS_VOLUP) ? 2 : -2;
+                adjust_volume(step);
+            }
+#else
                 if (button == ACTION_WPS_VOLUP)
                     adjust_volume(1);
                 else
                     adjust_volume(-1);
+#endif
 
-                setvol();
+#ifdef SHANLING_M0PRO
+                /* Drop redraws when the wheel is firing faster than we can
+                 * paint -- otherwise volume ticks fall behind the encoder. */
+                if (button_queue_count() < 6)
+                {
+                    FOR_NB_SCREENS(i)
+                    {
+                        skin_update(WPS, i, SKIN_REFRESH_NON_STATIC);
+                    }
+                }
+#else
                 FOR_NB_SCREENS(i)
                 {
                     skin_update(WPS, i, SKIN_REFRESH_NON_STATIC);
                 }
+#endif
                 update = false;
                 break;
             /* fast forward

@@ -46,8 +46,12 @@
 %?bp<%?bc<%xd(Ba)|%xd(Bb)>|%?bl<|%xd(Bc)|%xd(Bd)|%xd(Be)|%xd(Bf)|%xd(Bg)|%xd(Bh)|%xd(Bi)|%xd(Bj)>>
 #
 # Volume
+# Per-pixel granularity (34 levels) using the bar tag. The fill bitmap is
+# frame 10 ("full") of the original volume icon strip; the skin engine
+# reveals it left-to-right based on volume, so the speaker icon fills in
+# smoothly instead of snapping between 10 quantized frames.
 %V(96,207,34,23,-)
-%?pv<%xd(Ca)|%xd(Cb)|%xd(Cc)|%xd(Cd)|%xd(Ce)|%xd(Cf)|%xd(Cg)|%xd(Ch)|%xd(Ci)|%xd(Cj)>
+%pv(0,0,34,23,volume-bar-240x240x16.bmp)
 #
 # Shuffle
 %V(137,211,37,16,-)

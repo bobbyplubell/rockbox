@@ -65,6 +65,7 @@ extern struct hynitron_state hynitron_state;
 void hynitron_init(void);
 void hynitron_set_event_cb(void(*fn)(struct hynitron_state *state));
 void hynitron_enable(bool en);
+void hynitron_configure_regs(void);
 void hynitron_irq_handler(void);
 
 #endif /* __HYNITRON_CST_H__ */

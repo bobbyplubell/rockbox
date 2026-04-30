@@ -8,8 +8,7 @@
 #
 # Status bar viewport: full width, 22px tall, font 0 = UI font (theme: 22-Terminus-Bold)
 %V(0,0,240,22,0)
-%al%bl%%
-%ac%cH:%cM
+%al%bl%%%ac%cH:%cM%ar
 %pv(180,4,52,14,-)
 %?mp<|%xd(Pb)|%xd(Pc)|%xd(Pd)|%xd(Pe)>
 %?mh<%xd(L)>
