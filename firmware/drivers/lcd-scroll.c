@@ -122,6 +122,15 @@ void LCDFN(bidir_scroll)(int percent)
  * Returns true if the text scrolled to the end */
 bool LCDFN(scroll_now)(struct scrollinfo *s)
 {
+#ifdef SHANLING_M0PRO
+    /* TODO: scroll engine repeatedly crashes on this target with what looks
+     * like corrupted scrollinfo entries (NULL/dangling vp, bad scroll_func,
+     * etc). Field-level guards just push the fault forward by a few insns,
+     * so disable rendering entirely until the leak source is found. The
+     * scroll thread keeps ticking; we just no-op the per-line work. */
+    (void)s;
+    return true;
+#endif
     int width = s->line_stringsize; /* Calculated by LCDFN puts_scroll_worker() */
     /*int width = font_getstringsize(s->linebuffer, NULL, NULL, s->vp->font);*/
 

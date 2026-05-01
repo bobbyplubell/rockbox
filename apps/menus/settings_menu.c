@@ -335,13 +335,24 @@ MENUITEM_SETTING(volume_adjust_norm_steps, &global_settings.volume_adjust_norm_s
 /* Keyclick menu */
 MENUITEM_SETTING(keyclick, &global_settings.keyclick, NULL);
 MENUITEM_SETTING(keyclick_repeats, &global_settings.keyclick_repeats, NULL);
+#ifdef SHANLING_M0PRO
+MENUITEM_SETTING(list_edge_beep, &global_settings.list_edge_beep, NULL);
+#endif
 #ifdef HAVE_HARDWARE_CLICK
 MENUITEM_SETTING(keyclick_hardware, &global_settings.keyclick_hardware, NULL);
 MAKE_MENU(keyclick_menu, ID2P(LANG_KEYCLICK), 0, Icon_NOICON,
-           &keyclick, &keyclick_hardware, &keyclick_repeats);
+           &keyclick, &keyclick_hardware, &keyclick_repeats
+#ifdef SHANLING_M0PRO
+           , &list_edge_beep
+#endif
+           );
 #else
 MAKE_MENU(keyclick_menu, ID2P(LANG_KEYCLICK), 0, Icon_NOICON,
-           &keyclick, &keyclick_repeats);
+           &keyclick, &keyclick_repeats
+#ifdef SHANLING_M0PRO
+           , &list_edge_beep
+#endif
+           );
 #endif
 
 #if CONFIG_CHARGING

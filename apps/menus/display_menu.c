@@ -581,8 +581,15 @@ MENUITEM_FUNCTION(touchscreen_menu_reset_calibration, 0,
 	              ID2P(LANG_TOUCHSCREEN_RESET_CALIBRATION),
 	              reset_mapping, NULL, Icon_NOICON);
 MENUITEM_SETTING(list_line_padding, &global_settings.list_line_padding, line_padding_callback);
+#ifdef SHANLING_M0PRO
+MENUITEM_SETTING(list_title_extra, &global_settings.list_title_extra, line_padding_callback);
+#endif
 
-MAKE_MENU(touchscreen_menu, ID2P(LANG_TOUCHSCREEN_SETTINGS), NULL, Icon_NOICON, &list_line_padding, &touch_mode,
+MAKE_MENU(touchscreen_menu, ID2P(LANG_TOUCHSCREEN_SETTINGS), NULL, Icon_NOICON, &list_line_padding,
+#ifdef SHANLING_M0PRO
+            &list_title_extra,
+#endif
+            &touch_mode,
             &touchscreen_menu_calibrate, &touchscreen_menu_reset_calibration);
 #endif
 

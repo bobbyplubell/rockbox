@@ -11543,6 +11543,23 @@
   </voice>
 </phrase>
 <phrase>
+  id: LANG_LIST_TITLE_EXTRA
+  desc: extra height for the pinned list title (back button)
+  user: core
+  <source>
+    *: none
+    touchscreen: "List Title Extra Height"
+  </source>
+  <dest>
+    *: none
+    touchscreen: "List Title Extra Height"
+  </dest>
+  <voice>
+    *: none
+    touchscreen: "List Title Extra Height"
+  </voice>
+</phrase>
+<phrase>
   id: LANG_SLEEP_TIMER_DURATION
   desc: default sleep timer duration in minutes
   user: core
@@ -15482,6 +15499,20 @@
   </dest>
   <voice>
     *: "List Wraparound"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_EDGE_BEEP
+  desc: in Settings
+  user: core
+  <source>
+    *: "List Edge Beep"
+  </source>
+  <dest>
+    *: "List Edge Beep"
+  </dest>
+  <voice>
+    *: "List Edge Beep"
   </voice>
 </phrase>
 <phrase>

@@ -73,6 +73,8 @@ my $lineselecttextcolor;
 my $filetylecolor;
 my $listviewport;
 my $remotelistviewport;
+my $listpadding;
+my $scrollbarwidth;
 
 # LCD sizes
 my ($main_height, $main_width, $main_depth);
@@ -297,6 +299,8 @@ MOO
         push @out, "list separator height: $sep\n"                    if($sep);
         push @out, "list separator color: $sepcolor\n"                if($sepcolor);
     }
+    push @out, "list padding: $listpadding\n"     if(defined($listpadding));
+    push @out, "scrollbar width: $scrollbarwidth\n" if(defined($scrollbarwidth));
 
     push @out, "font: $font\n"                  if (defined($font));
     push @out, "statusbar: $statusbar\n"        if (defined($statusbar));
@@ -453,6 +457,8 @@ while(<WPS>) {
         undef $filetylecolor;
         undef $listviewport;
         undef $remotelistviewport;
+        undef $listpadding;
+        undef $scrollbarwidth;
     }
     elsif($l =~ /^Name: *(.*)/i) {
         $theme = $1;
@@ -514,6 +520,12 @@ while(<WPS>) {
             }
             elsif($_ = check_res_feature($l, "list separator height")) {
                 $sep = $_;
+            }
+            elsif($_ = check_res_feature($l, "list padding")) {
+                $listpadding = $_;
+            }
+            elsif($_ = check_res_feature($l, "scrollbar width")) {
+                $scrollbarwidth = $_;
             }
             elsif($l =~ /^line selector start color: *(.*)/i) {
                 $lineselectstart = $1;

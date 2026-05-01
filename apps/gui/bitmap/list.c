@@ -155,6 +155,11 @@ static bool draw_title(struct screen *display,
         return false;
     *title_text_vp = *(list->parent[screen]);
     linedes.height = list->line_height[screen];
+#ifdef SHANLING_M0PRO
+    /* Title doubles as the touch back-button; give it more vertical room
+       than a regular list row so it's a comfortable tap target. */
+    linedes.height += global_settings.list_title_extra;
+#endif
     title_text_vp->height = linedes.height;
 
 #if LCD_DEPTH > 1

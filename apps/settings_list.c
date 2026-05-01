@@ -1222,6 +1222,11 @@ const struct settings_list settings[] = {
                   -1, "list padding", "auto,off", UNIT_PIXEL, list_pad_formatter,
                   list_pad_getlang, NULL, 16,
                   -1,0,2,4,6,8,10,12,16,20,24,28,32,38,44,50),
+#ifdef SHANLING_M0PRO
+    INT_SETTING(F_THEMESETTING, list_title_extra, LANG_LIST_TITLE_EXTRA, 22,
+                "list title extra", UNIT_PIXEL, 0, 64, 2,
+                NULL, NULL, NULL),
+#endif
 #endif
 #if LCD_DEPTH > 1
     TABLE_SETTING(F_ALLOW_ARBITRARY_VALS, list_separator_height, LANG_LIST_SEPARATOR,
@@ -1455,6 +1460,10 @@ const struct settings_list settings[] = {
                   false,"scroll paginated",NULL),
     OFFON_SETTING(0,list_wraparound,LANG_LIST_WRAPAROUND,
                   true,"list wraparound",NULL),
+#ifdef SHANLING_M0PRO
+    OFFON_SETTING(0,list_edge_beep,LANG_LIST_EDGE_BEEP,
+                  false,"list edge beep",NULL),
+#endif
     CHOICE_SETTING(0, list_order, LANG_LIST_ORDER,
 #if defined(HAVE_SCROLLWHEEL) && !defined(FIIO_M3K)
                    1,

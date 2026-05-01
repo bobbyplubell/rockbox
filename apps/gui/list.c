@@ -104,7 +104,18 @@ int list_get_nb_lines(struct gui_synclist *list, enum screen_type screen)
     {
         lines = list_nb_lines(list, screen);
         if (list_display_title(list, screen))
+        {
             lines -= 1;
+#if defined(SHANLING_M0PRO) && defined(HAVE_TOUCHSCREEN)
+            /* Title row is taller than a regular item by list_title_extra
+             * pixels (see draw_title in apps/gui/bitmap/list.c). Subtract
+             * the additional rows it consumes, otherwise scroll math thinks
+             * more items fit than actually do and the bottom bounces. */
+            int lh = list->line_height[screen];
+            if (lh > 0)
+                lines -= (global_settings.list_title_extra + lh - 1) / lh;
+#endif
+        }
     }
     return lines;
 }
@@ -284,7 +295,11 @@ static void gui_list_put_selection_on_screen(struct gui_synclist * gui_list,
 
 static void edge_beep(struct gui_synclist * gui_list, bool wrap)
 {
+#ifdef SHANLING_M0PRO
+    if (global_settings.list_edge_beep)
+#else
     if (gui_list->keyclick)
+#endif
     {
         enum system_sound sound = SOUND_LIST_EDGE_BEEP_WRAP;
         if (!wrap) /* a bounce */

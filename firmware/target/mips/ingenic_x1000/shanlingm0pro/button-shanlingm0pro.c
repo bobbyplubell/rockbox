@@ -95,28 +95,41 @@ int button_read_device(int* data)
      * behind the encoder. Also: no BUTTON_REL — apps/action.c special-cases
      * scrollwheel buttons via HAVE_SCROLLWHEEL and treats them as
      * auto-completed without a release. */
-    int whpos = wheel_pos;
+    /* Snapshot and consume wheel_pos atomically — the IRQ handler can fire
+     * between read and write and add a delta that we'd otherwise clobber.
+     * Without this, a slow reverse turn arriving right after a posted detent
+     * loses its first transition and the user sees the cursor stuck. */
+    int whpos;
+    int irq_state = disable_irq_save();
+    whpos = wheel_pos;
+    if(whpos >= 4 || whpos <= -4)
+        wheel_pos = 0;
+    restore_irq(irq_state);
+
     if(whpos >= 4 || whpos <= -4) {
         static long last_wheel_post = 0;
 
-        /* Wait for the consumer to drain before posting again. wheel_pos is
-         * left untouched so accumulated detents are preserved. */
+        /* Wait for the consumer to drain before posting again. If queue is
+         * still busy, push the consumed detent back so we try again later. */
         if(button_queue_empty()) {
-            int wheel_btn = (whpos > 0) ? BUTTON_VOL_DOWN : BUTTON_VOL_UP;
+            int dir = (whpos > 0) ? 1 : -1;
+            int wheel_btn = (dir > 0) ? BUTTON_VOL_DOWN : BUTTON_VOL_UP;
 
             /* Tag rapid spins as REPEAT (matches Sansa AMS behavior). */
             if(TIME_BEFORE(current_tick, last_wheel_post + HZ/10))
                 wheel_btn |= BUTTON_REPEAT;
 
-            /* Consume one detent (4 quadrature units), keep the remainder. */
-            wheel_pos = (whpos > 0) ? whpos - 4 : whpos + 4;
             last_wheel_post = current_tick;
-
             button_queue_post(wheel_btn, 0);
 
             /* Poke the backlight */
             backlight_on();
             reset_poweroff_timer();
+        } else {
+            /* Queue busy — return the unconsumed motion. */
+            irq_state = disable_irq_save();
+            wheel_pos += whpos;
+            restore_irq(irq_state);
         }
     }
 

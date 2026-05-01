@@ -595,6 +595,9 @@ struct user_settings
 
 #ifdef HAVE_TOUCHSCREEN
     int list_line_padding;
+#ifdef SHANLING_M0PRO
+    int list_title_extra; /* extra pixels added to the pinned-title row height */
+#endif
 #endif
 #if LCD_DEPTH > 1
     int list_separator_height; /* -1=auto (== 1 currently), 0=disabled, X=height in pixels */
@@ -605,6 +608,9 @@ struct user_settings
                             0=goto previous location */
     bool scroll_paginated; /* 0=dont 1=do */
     bool list_wraparound;  /* wrap around to opposite end of list when scrolling */
+#ifdef SHANLING_M0PRO
+    bool list_edge_beep;   /* play edge beep when scrolling hits top/bottom of a list */
+#endif
     int  list_order;       /* order for numeric lists (ascending or descending) */
     int  scroll_speed;     /* long texts scrolling speed: 1-30 */
     int  bidir_limit;      /* bidir scroll length limit */
