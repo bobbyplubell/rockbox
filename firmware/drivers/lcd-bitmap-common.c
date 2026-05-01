@@ -36,15 +36,10 @@
 #include "panic.h"
 #endif
 
-#ifdef SHANLING_M0PRO
 /* See scroll_engine.h for rationale. Recursive mutex; safe to nest with
  * scroll_now() which also takes it on the worker-thread path. */
 #define SCROLL_LOCK()   mutex_lock(&LCDFN(scroll_mutex))
 #define SCROLL_UNLOCK() mutex_unlock(&LCDFN(scroll_mutex))
-#else
-#define SCROLL_LOCK()   do {} while(0)
-#define SCROLL_UNLOCK() do {} while(0)
-#endif
 
 #ifndef LCDFN /* Not compiling for remote - define macros for main LCD. */
 #define LCDFN(fn) lcd_ ## fn

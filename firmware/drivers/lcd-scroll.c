@@ -43,14 +43,9 @@ struct scroll_screen_info LCDFN(scroll_info) =
     .step         = 6,
 };
 
-#ifdef SHANLING_M0PRO
 struct mutex LCDFN(scroll_mutex);
 #define SCROLL_LOCK()   mutex_lock(&LCDFN(scroll_mutex))
 #define SCROLL_UNLOCK() mutex_unlock(&LCDFN(scroll_mutex))
-#else
-#define SCROLL_LOCK()   do {} while(0)
-#define SCROLL_UNLOCK() do {} while(0)
-#endif
 
 
 void LCDFN(scroll_stop)(void)
