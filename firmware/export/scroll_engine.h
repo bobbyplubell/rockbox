@@ -158,6 +158,20 @@ struct scroll_screen_info
 
 extern struct scroll_screen_info lcd_scroll_info;
 
+#ifdef SHANLING_M0PRO
+/* Serializes access to lcd_scroll_info and the scroll[] entries it owns.
+ * Touch-primary UI + DMA LCD churn the engine hard enough to expose a race
+ * between puts_scroll_worker(), scroll_stop_viewport_rect() and the scroll
+ * worker thread. Recursive — scroll_now() is called both from the worker
+ * (already holding the lock) and from puts_scroll_worker() (also holding
+ * the lock). */
+#include "mutex.h"
+extern struct mutex lcd_scroll_mutex;
+#ifdef HAVE_REMOTE_LCD
+extern struct mutex lcd_remote_scroll_mutex;
+#endif
+#endif
+
 /** remote lcd **/
 #ifdef HAVE_REMOTE_LCD
 #define LCD_REMOTE_SCROLLABLE_LINES \

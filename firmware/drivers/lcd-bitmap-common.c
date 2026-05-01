@@ -36,6 +36,16 @@
 #include "panic.h"
 #endif
 
+#ifdef SHANLING_M0PRO
+/* See scroll_engine.h for rationale. Recursive mutex; safe to nest with
+ * scroll_now() which also takes it on the worker-thread path. */
+#define SCROLL_LOCK()   mutex_lock(&LCDFN(scroll_mutex))
+#define SCROLL_UNLOCK() mutex_unlock(&LCDFN(scroll_mutex))
+#else
+#define SCROLL_LOCK()   do {} while(0)
+#define SCROLL_UNLOCK() do {} while(0)
+#endif
+
 #ifndef LCDFN /* Not compiling for remote - define macros for main LCD. */
 #define LCDFN(fn) lcd_ ## fn
 #define FBFN(fn)  fb_ ## fn
@@ -696,6 +706,8 @@ static bool LCDFN(puts_scroll_worker)(int x, int y, const unsigned char *string,
         return false;
     if ((height + y) > (vp->height))
         height = vp->height - y;
+
+    SCROLL_LOCK();
     s = find_scrolling_line(x, y);
     restart = !s;
 
@@ -706,8 +718,10 @@ static bool LCDFN(puts_scroll_worker)(int x, int y, const unsigned char *string,
         LCDFN(scroll_stop_viewport_rect)(vp, x, y, width, height);
         LCDFN(putsxyofs)(x, y, x_offset, string);
         /* nothing to scroll, or out of scrolling lines. Either way, get out */
-        if (w < width || LCDFN(scroll_info).lines >= LCDM(SCROLLABLE_LINES))
+        if (w < width || LCDFN(scroll_info).lines >= LCDM(SCROLLABLE_LINES)) {
+            SCROLL_UNLOCK();
             return false;
+        }
         /* else restarting: prepare scroll line */
         s = &LCDFN(scroll_info).scroll[LCDFN(scroll_info).lines];
     }
@@ -734,21 +748,24 @@ static bool LCDFN(puts_scroll_worker)(int x, int y, const unsigned char *string,
         s->height = height;
         s->vp = vp;
         s->start_tick = current_tick + LCDFN(scroll_info).delay;
+        /* publish the new entry only after every field — including the
+         * scroll_func/userdata pair below — is set, so the worker can never
+         * see a half-initialised slot. */
+        s->scroll_func = scroll_func;
+        s->userdata = data;
         LCDFN(scroll_info).lines++;
     } else {
         /* not restarting, however we are about to assign new userdata;
          * therefore tell the scroller that it can release the previous userdata */
         s->line = NULL;
         s->scroll_func(s);
+        s->scroll_func = scroll_func;
+        s->userdata = data;
+        /* if only the text was updated render immediately */
+        LCDFN(scroll_now(s));
     }
 
-    s->scroll_func = scroll_func;
-    s->userdata = data;
-
-    /* if only the text was updated render immediately */
-    if (!restart)
-        LCDFN(scroll_now(s));
-
+    SCROLL_UNLOCK();
     return true;
 }
 

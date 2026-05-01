@@ -62,12 +62,13 @@ void power_init(void)
 
     axp2101_init();
 
-    /* Trigger a fuel-gauge reset so the IC re-derives SoC from current
-     * voltage instead of carrying stale state from the prior boot. REG 0x17
-     * bit 3 is RWAC (auto-clears once the reset completes); the gauge
-     * enable in REG 0x18 bit 3 is on by default so we don't touch 0x18. */
-    i2c_reg_write1(AXP_PMU_BUS, AXP_PMU_ADDR,
-                   AXP2101_REG_FUELGAUGERESET, 0x08);
+    /* Do NOT reset the fuel gauge here. The AXP2101 gauge is a coulomb
+     * counter + OCV/Rbat model that needs continuity across boots to be
+     * accurate; resetting forces an OCV-only reseed under load, which reads
+     * many percent off and then jumps when the charger plugs/unplugs. The
+     * stock M0 Pro kernel never resets it deliberately — it logs
+     * "something reset the gauge" as an error if a reset is detected.
+     * Gauge enable (REG 0x18 bit 3) is on by default. */
 
     /* Enable required ADCs */
     axp2101_adc_set_enabled(

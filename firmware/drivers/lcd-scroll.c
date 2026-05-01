@@ -43,9 +43,19 @@ struct scroll_screen_info LCDFN(scroll_info) =
     .step         = 6,
 };
 
+#ifdef SHANLING_M0PRO
+struct mutex LCDFN(scroll_mutex);
+#define SCROLL_LOCK()   mutex_lock(&LCDFN(scroll_mutex))
+#define SCROLL_UNLOCK() mutex_unlock(&LCDFN(scroll_mutex))
+#else
+#define SCROLL_LOCK()   do {} while(0)
+#define SCROLL_UNLOCK() do {} while(0)
+#endif
+
 
 void LCDFN(scroll_stop)(void)
 {
+    SCROLL_LOCK();
     for (int i = 0; i < LCDFN(scroll_info).lines; i++)
     {
         /* inform scroller about end of scrolling */
@@ -54,11 +64,13 @@ void LCDFN(scroll_stop)(void)
         s->scroll_func(s);
     }
     LCDFN(scroll_info).lines = 0;
+    SCROLL_UNLOCK();
 }
 
 /* Clears scrolling lines that intersect with the area */
 void LCDFN(scroll_stop_viewport_rect)(const struct viewport *vp, int x, int y, int width, int height)
 {
+    SCROLL_LOCK();
     int i = 0;
     while (i < LCDFN(scroll_info).lines)
     {
@@ -86,6 +98,7 @@ void LCDFN(scroll_stop_viewport_rect)(const struct viewport *vp, int x, int y, i
             i++;
         }
     }
+    SCROLL_UNLOCK();
 }
 
 /* Stop all scrolling lines in the specified viewport */
@@ -197,6 +210,7 @@ static void LCDFN(scroll_worker)(void)
         return;
     }
 
+    SCROLL_LOCK();
     for ( index = 0; index < si->lines; index++ )
     {
         struct scrollinfo *s = &si->scroll[index];
@@ -235,5 +249,6 @@ static void LCDFN(scroll_worker)(void)
         LCDFN(set_viewport_ex)(oldvp, 0); /* don't mark the last vp as dirty */
 #endif
     }
+    SCROLL_UNLOCK();
 }
 #endif /*!BOOTLOADER*/

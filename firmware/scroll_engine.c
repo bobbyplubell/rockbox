@@ -195,6 +195,12 @@ static void scroll_thread(void)
 void scroll_init(void)
 {
     static long scroll_stack[(DEFAULT_STACK_SIZE*3)/sizeof(long)];
+#ifdef SHANLING_M0PRO
+    mutex_init(&lcd_scroll_mutex);
+#ifdef HAVE_REMOTE_LCD
+    mutex_init(&lcd_remote_scroll_mutex);
+#endif
+#endif
 #ifdef HAVE_REMOTE_LCD
     queue_init(&scroll_queue, true);
 #endif
