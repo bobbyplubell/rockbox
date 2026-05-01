@@ -82,55 +82,24 @@ int button_read_device(int* data)
     uint32_t b = REG_GPIO_PIN(GPIO_B);
     if((b & (1 << 31)) == 0) r |= BUTTON_POWER;
 
-    /* Check the wheel.
-     *
-     * Pattern adapted from the Sansa AMS scrollwheel driver
-     * (firmware/target/arm/as3525/scrollwheel-as3525.c): self-pace by only
-     * posting when the button queue has fully drained, preserve any leftover
-     * quadrature in wheel_pos for the next tick (no event loss), and tag
-     * fast spins with BUTTON_REPEAT so the keymap can route them
-     * differently. The previous implementation posted at most one event per
-     * tick and zeroed wheel_pos, silently dropping accumulated motion when
-     * the consumer (e.g. WPS volume changes that hit the codec) lagged
-     * behind the encoder. Also: no BUTTON_REL — apps/action.c special-cases
-     * scrollwheel buttons via HAVE_SCROLLWHEEL and treats them as
-     * auto-completed without a release. */
-    /* Snapshot and consume wheel_pos atomically — the IRQ handler can fire
-     * between read and write and add a delta that we'd otherwise clobber.
-     * Without this, a slow reverse turn arriving right after a posted detent
-     * loses its first transition and the user sees the cursor stuck. */
-    int whpos;
-    int irq_state = disable_irq_save();
-    whpos = wheel_pos;
-    if(whpos >= 4 || whpos <= -4)
+    /* Check the wheel */
+    int wheel_btn = 0;
+    int whpos = wheel_pos;
+    if(whpos > 3)
+        wheel_btn = BUTTON_VOL_DOWN;
+    else if(whpos < -3)
+        wheel_btn = BUTTON_VOL_UP;
+
+    if(wheel_btn) {
         wheel_pos = 0;
-    restore_irq(irq_state);
 
-    if(whpos >= 4 || whpos <= -4) {
-        static long last_wheel_post = 0;
+        /* Post the event (rapid motion is more reliable this way) */
+        button_queue_post(wheel_btn, 0);
+        button_queue_post(wheel_btn|BUTTON_REL, 0);
 
-        /* Wait for the consumer to drain before posting again. If queue is
-         * still busy, push the consumed detent back so we try again later. */
-        if(button_queue_empty()) {
-            int dir = (whpos > 0) ? 1 : -1;
-            int wheel_btn = (dir > 0) ? BUTTON_VOL_DOWN : BUTTON_VOL_UP;
-
-            /* Tag rapid spins as REPEAT (matches Sansa AMS behavior). */
-            if(TIME_BEFORE(current_tick, last_wheel_post + HZ/10))
-                wheel_btn |= BUTTON_REPEAT;
-
-            last_wheel_post = current_tick;
-            button_queue_post(wheel_btn, 0);
-
-            /* Poke the backlight */
-            backlight_on();
-            reset_poweroff_timer();
-        } else {
-            /* Queue busy — return the unconsumed motion. */
-            irq_state = disable_irq_save();
-            wheel_pos += whpos;
-            restore_irq(irq_state);
-        }
+        /* Poke the backlight */
+        backlight_on();
+        reset_poweroff_timer();
     }
 
     /* Pass raw touch coordinates to Rockbox's software gesture layer
