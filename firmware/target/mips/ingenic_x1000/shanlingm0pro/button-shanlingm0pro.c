@@ -39,6 +39,7 @@
 
 /* Volume wheel rotation */
 static volatile int wheel_pos = 0;
+static long last_wheel_post = 0;
 
 void button_init_device(void)
 {
@@ -82,24 +83,38 @@ int button_read_device(int* data)
     uint32_t b = REG_GPIO_PIN(GPIO_B);
     if((b & (1 << 31)) == 0) r |= BUTTON_POWER;
 
-    /* Check the wheel */
-    int wheel_btn = 0;
-    int whpos = wheel_pos;
-    if(whpos > 3)
-        wheel_btn = BUTTON_VOL_DOWN;
-    else if(whpos < -3)
-        wheel_btn = BUTTON_VOL_UP;
-
-    if(wheel_btn) {
+    /* Check the wheel — pattern from Sansa AMS scrollwheel driver
+     * (firmware/target/arm/as3525/scrollwheel-as3525.c): self-pace by only
+     * posting when the queue has drained, preserve leftover quadrature for
+     * the next tick, tag fast spins with BUTTON_REPEAT. No BUTTON_REL —
+     * apps/action.c:243 auto-completes scrollwheel buttons. The IRQ-protected
+     * snapshot is needed because the read-modify-write of wheel_pos otherwise
+     * races the IRQ handler, losing the first detent on direction reversal. */
+    int whpos;
+    int irq_state = disable_irq_save();
+    whpos = wheel_pos;
+    if(whpos >= 4 || whpos <= -4)
         wheel_pos = 0;
+    restore_irq(irq_state);
 
-        /* Post the event (rapid motion is more reliable this way) */
-        button_queue_post(wheel_btn, 0);
-        button_queue_post(wheel_btn|BUTTON_REL, 0);
+    if(whpos >= 4 || whpos <= -4) {
+        if(button_queue_empty()) {
+            int wheel_btn = (whpos > 0) ? BUTTON_VOL_DOWN : BUTTON_VOL_UP;
 
-        /* Poke the backlight */
-        backlight_on();
-        reset_poweroff_timer();
+            if(TIME_BEFORE(current_tick, last_wheel_post + HZ/10))
+                wheel_btn |= BUTTON_REPEAT;
+
+            last_wheel_post = current_tick;
+            button_queue_post(wheel_btn, 0);
+
+            backlight_on();
+            reset_poweroff_timer();
+        } else {
+            /* Queue busy — return the unconsumed motion for next tick. */
+            irq_state = disable_irq_save();
+            wheel_pos += whpos;
+            restore_irq(irq_state);
+        }
     }
 
     /* Pass raw touch coordinates to Rockbox's software gesture layer
