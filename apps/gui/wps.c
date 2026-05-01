@@ -51,6 +51,9 @@
 #include "cuesheet.h"
 #include "ata_idle_notify.h"
 #include "root_menu.h"
+#if defined(SHANLING_M0PRO) && defined(HAVE_TAGCACHE)
+#include "tagtree.h"
+#endif
 #include "backdrop.h"
 #include "quickscreen.h"
 #include "shortcuts.h"
@@ -825,6 +828,12 @@ long gui_wps_show(void)
                 gwps_leave_wps(true);
                 int retval = onplay(state->id3->path,
                        FILE_ATTR_AUDIO, CONTEXT_WPS, hotkey, ONPLAY_NO_CUSTOMACTION);
+#if defined(SHANLING_M0PRO) && defined(HAVE_TAGCACHE)
+                /* tagtree_subentries_do() inside Track Info -> Artist row
+                 * armed a jump; honor it before any other return-code path. */
+                if (tagtree_consume_pending_db_jump())
+                    return GO_TO_DBBROWSER;
+#endif
                 /* if music is stopped in the context menu we want to exit the wps */
                 if (retval == ONPLAY_MAINMENU
                     || !audio_status())
@@ -1069,9 +1078,14 @@ long gui_wps_show(void)
             case ACTION_WPS_ID3SCREEN:
             {
                 gwps_leave_wps(true);
-                if (browse_id3(audio_current_track(),
+                bool exited = browse_id3(audio_current_track(),
                         playlist_get_display_index(),
-                        playlist_amount(), NULL, 1, NULL))
+                        playlist_amount(), NULL, 1, NULL);
+#if defined(SHANLING_M0PRO) && defined(HAVE_TAGCACHE)
+                if (tagtree_consume_pending_db_jump())
+                    return GO_TO_DBBROWSER;
+#endif
+                if (exited)
                     return GO_TO_ROOT;
                 restore = true;
             }

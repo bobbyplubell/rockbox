@@ -741,6 +741,13 @@ static int dirbrowse(void)
 #ifdef HAVE_TAGCACHE
     lasttable = -1;
     lastextra = -1;
+#ifdef SHANLING_M0PRO
+    /* Apply any tagtree_subentries_do() jump primed before we got here.
+     * Must come AFTER rockbox_browse()'s tc->dirlevel/selected_item reset
+     * and BEFORE update_dir() -> tagtree_load() reads the state. */
+    if (id3db)
+        tagtree_apply_pending_jump(&tc);
+#endif
 #endif
 
     start_wps = false;

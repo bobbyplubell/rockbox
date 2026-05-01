@@ -37,6 +37,32 @@ void tagtree_init(void) INIT_ATTR;
 int tagtree_enter(struct tree_context* c, bool is_visible);
 void tagtree_exit(struct tree_context* c, bool is_visible);
 int tagtree_load(struct tree_context* c);
+
+/* Jump directly into the "Same as currently played track" tagnavi submenu
+ * for the field of the currently-playing track, as if the user navigated
+ * Database -> "Same..." -> field manually. Caller should follow up with
+ * goto_root_menu(GO_TO_DBBROWSER) so the database tree picks up the primed
+ * state. Returns false if no track is playing, or if the user-customized
+ * tagnavi.config has no "same" menu / matching field entry. */
+enum tagtree_goto_field {
+    TAGTREE_GOTO_ARTIST,
+    TAGTREE_GOTO_ALBUM,
+    TAGTREE_GOTO_COMPOSER,
+    TAGTREE_GOTO_TITLE,
+};
+bool tagtree_subentries_do(struct tree_context *c, enum tagtree_goto_field field);
+
+/* Returns true (peek; does not clear) if a tagtree_subentries_do() call has
+ * armed a jump and is awaiting the screen-stack to land in the DB browser.
+ * The wrapper around the launching screen (e.g. browse_id3_wrapper) checks
+ * this on exit and returns GO_TO_DBBROWSER instead of GO_TO_PREVIOUS. */
+bool tagtree_consume_pending_db_jump(void);
+
+/* Apply the pending jump to a tree_context (typically called from dirbrowse
+ * after rockbox_browse()'s reset of tc->dirlevel/selected_item). No-op if
+ * no jump is pending. Always clears the pending flag. */
+void tagtree_apply_pending_jump(struct tree_context *c);
+
 char* tagtree_get_entry_name(struct tree_context *c, int id,
                                     char* buf, size_t bufsize);
 bool tagtree_current_playlist_insert(int position, bool queue);

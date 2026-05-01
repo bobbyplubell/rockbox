@@ -699,9 +699,14 @@ static int browse_id3_wrapper(void)
     if (get_current_activity() == ACTIVITY_CONTEXTMENU)  /* get rid of parent activity */
         pop_current_activity_without_refresh();          /* when called from ctxt menu */
 
-    if (browse_id3(audio_current_track(),
+    bool exited = browse_id3(audio_current_track(),
             playlist_get_display_index(),
-            playlist_amount(), NULL, 1, NULL))
+            playlist_amount(), NULL, 1, NULL);
+#if defined(SHANLING_M0PRO) && defined(HAVE_TAGCACHE)
+    if (tagtree_consume_pending_db_jump())
+        return GO_TO_DBBROWSER;
+#endif
+    if (exited)
         return GO_TO_ROOT;
     return GO_TO_PREVIOUS;
 }

@@ -2111,6 +2111,224 @@ int tagtree_load(struct tree_context* c)
     return count;
 }
 
+/* Substitute runtime placeholders (#artist#, #album#, #directory#, ...) in
+ * every clause of xcsi against the currently-playing track. For clauses with
+ * no placeholder (interactive search), prompts the user via kbd_input.
+ *
+ * Returns 0 on success, -1 if the user cancelled a kbd_input prompt
+ * (caller is expected to roll back: tagtree_exit + unlock + return).
+ */
+static int apply_runtime_clauses(struct tree_context *c,
+                                 struct search_instruction *xcsi,
+                                 bool is_visible)
+{
+    struct mp3entry *id3;
+    int i, j, source, rc;
+
+    for (i = 0; i < xcsi->tagorder_count; i++)
+    {
+        for (j = 0; j < xcsi->clause_count[i]; j++)
+        {
+            char* searchstring;
+
+            if (xcsi->clause[i][j]->type == clause_logical_or)
+                continue;
+
+            source = xcsi->clause[i][j]->source;
+
+            if (source == source_constant)
+                continue;
+
+            /* discard history for lower levels when doing runtime searches */
+            if (is_visible)
+                max_history_level = c->dirlevel - 1;
+
+            searchstring = xcsi->clause[i][j]->str;
+            *searchstring = '\0';
+
+            id3 = audio_current_track();
+
+            if (source == source_current_path && id3)
+            {
+                char *e;
+                strmemccpy(searchstring, id3->path, SEARCHSTR_SIZE);
+                e = strrchr(searchstring, '/');
+                if (e)
+                    *e = '\0';
+            }
+            else if (source > source_runtime && id3)
+            {
+                int k = source - source_runtime;
+                int offset = id3_to_search_mapping[k].id3_offset;
+                char **src = (char**)((char*)id3 + offset);
+                if (*src)
+                    strmemccpy(searchstring, *src, SEARCHSTR_SIZE);
+            }
+            else
+            {
+                rc = kbd_input(searchstring, SEARCHSTR_SIZE, NULL);
+                if (rc < 0 || !searchstring[0])
+                    return -1;
+                if (xcsi->clause[i][j]->numeric)
+                    xcsi->clause[i][j]->numeric_data = atoi(searchstring);
+            }
+        }
+    }
+    return 0;
+}
+
+/* Look up a menu in menus[] by its id ("same", "main", etc. — the first
+ * argument to %menu_start in tagnavi.config). Returns -1 if not found. */
+static int find_menu_by_id(const char *id)
+{
+    for (int i = 0; i < menu_count; i++)
+    {
+        if (menus[i] && strcmp(menus[i]->id, id) == 0)
+            return i;
+    }
+    return -1;
+}
+
+/* Find the index of an item in menu_idx whose label matches one of the
+ * candidate strings (case-sensitive, exact match against _name). The "same"
+ * submenu's labels are user-editable in tagnavi.config but the stock labels
+ * are stable; we accept a couple of synonyms per field for robustness.
+ * Returns -1 if no item matches. */
+static int find_item_by_name(int menu_idx, const char *const *candidates)
+{
+    if (menu_idx < 0 || !menus[menu_idx])
+        return -1;
+    struct menu_root *m = menus[menu_idx];
+    for (int i = 0; i < m->itemcount; i++)
+    {
+        const char *name = (const char *)P2STR((unsigned char *)m->items[i]->name);
+        for (const char *const *c = candidates; *c; c++)
+        {
+            if (strcmp(name, *c) == 0)
+                return i;
+        }
+    }
+    return -1;
+}
+
+/* Pending-jump state. Filled in by tagtree_subentries_do(); applied to the
+ * actual tree_context later by tagtree_apply_pending_jump() — needed because
+ * rockbox_browse() resets tc->dirlevel/selected_item on first DB entry, so
+ * we can't prime in tagtree_subentries_do() and have the priming survive. */
+static bool pending_db_jump;
+static int pending_same_idx;
+static int pending_field_item;
+static int pending_same_in_root;
+
+bool tagtree_consume_pending_db_jump(void)
+{
+    /* Peek-style consumer for browse_id3_wrapper: returns true if a jump is
+     * armed but does NOT clear the pending state — clearing is owned by
+     * tagtree_apply_pending_jump() so the dirbrowse hook can act on it. */
+    return pending_db_jump;
+}
+
+bool tagtree_subentries_do(struct tree_context *c, enum tagtree_goto_field field)
+{
+    static const char *const artist_names[]   = { "Artist", NULL };
+    static const char *const album_names[]    = { "Album", NULL };
+    static const char *const composer_names[] = { "Composer", NULL };
+    static const char *const title_names[]    = { "Title", NULL };
+    const char *const *candidates;
+    (void)c;
+
+    if (!audio_current_track())
+        return false;
+
+    int same_idx = find_menu_by_id("same");
+    if (same_idx < 0)
+        return false;
+
+    switch (field)
+    {
+        case TAGTREE_GOTO_ARTIST:   candidates = artist_names;   break;
+        case TAGTREE_GOTO_ALBUM:    candidates = album_names;    break;
+        case TAGTREE_GOTO_COMPOSER: candidates = composer_names; break;
+        case TAGTREE_GOTO_TITLE:    candidates = title_names;    break;
+        default: return false;
+    }
+
+    int field_item = find_item_by_name(same_idx, candidates);
+    if (field_item < 0)
+        return false;
+
+    /* Find which item in the root menu opens the "same" submenu — needed so
+     * Back from the "same" submenu lands on the right cursor row. */
+    int same_in_root = -1;
+    if (menus[rootmenu])
+    {
+        for (int i = 0; i < menus[rootmenu]->itemcount; i++)
+        {
+            struct menu_entry *e = menus[rootmenu]->items[i];
+            if (e->type == menu_load && e->link == same_idx)
+            {
+                same_in_root = i;
+                break;
+            }
+        }
+    }
+
+    pending_same_idx = same_idx;
+    pending_field_item = field_item;
+    pending_same_in_root = same_in_root;
+    pending_db_jump = true;
+    return true;
+}
+
+void tagtree_apply_pending_jump(struct tree_context *c)
+{
+    if (!pending_db_jump)
+        return;
+    pending_db_jump = false;
+
+    if (pending_same_idx < 0 || !menus[pending_same_idx])
+        return;
+    if (pending_field_item < 0 ||
+        pending_field_item >= menus[pending_same_idx]->itemcount)
+        return;
+
+    /* Prime tagtree state as if user navigated main -> "Same..." -> field. */
+    tc = c;
+    menu = menus[pending_same_idx];
+    csi = &menu->items[pending_field_item]->si;
+    c->currextra = 0;
+    c->currtable = TABLE_NAVIBROWSE;
+    c->dirlevel = 2;
+    c->selected_item = 0;
+
+    /* Breadcrumb title for the results viewport. */
+    strmemccpy(current_title[0],
+               (const char *)P2STR((unsigned char *)menu->items[pending_field_item]->name),
+               sizeof(current_title[0]));
+
+    /* Runtime substitution: #artist# -> current track's artist, etc. */
+    if (apply_runtime_clauses(c, csi, false) < 0)
+    {
+        /* User cancelled the kbd_input fallback. Reset to root so the DB
+         * browser shows something sane rather than half-primed garbage. */
+        c->currtable = TABLE_ROOT;
+        c->currextra = rootmenu;
+        c->dirlevel = 0;
+        return;
+    }
+
+    /* Fake history so Back walks: results -> "same" submenu -> root menu. */
+    table_history[0] = TABLE_ROOT;
+    extra_history[0] = rootmenu;
+    selected_item_history[0] = (pending_same_in_root >= 0) ? pending_same_in_root : 0;
+
+    table_history[1] = TABLE_ROOT;
+    extra_history[1] = pending_same_idx;
+    selected_item_history[1] = pending_field_item;
+
+    max_history_level = 2;
+}
+
 /* Enters menu or table for selected item in the database.
  *
  * Call this with the is_visible parameter set to false to
@@ -2126,10 +2344,8 @@ int tagtree_enter(struct tree_context* c, bool is_visible)
 
     int rc = 0;
     struct tagentry *dptr;
-    struct mp3entry *id3;
     int newextra;
     int seek;
-    int source;
     bool is_random_item = false;
     bool adjust_selection = true;
 
@@ -2196,8 +2412,6 @@ int tagtree_enter(struct tree_context* c, bool is_visible)
 
             else if (newextra == TABLE_NAVIBROWSE)
             {
-                int i, j;
-
                 csi = &menu->items[seek]->si;
                 c->currextra = 0;
 
@@ -2208,65 +2422,12 @@ int tagtree_enter(struct tree_context* c, bool is_visible)
 
                 logf("%s (ROOT) current title %s", __func__, P2STR(name));
 
-                /* Read input as necessary. */
-                for (i = 0; i < csi->tagorder_count; i++)
+                if (apply_runtime_clauses(c, csi, is_visible) < 0)
                 {
-                    for (j = 0; j < csi->clause_count[i]; j++)
-                    {
-                        char* searchstring;
-
-                        if (csi->clause[i][j]->type == clause_logical_or)
-                            continue;
-
-                        source = csi->clause[i][j]->source;
-
-                        if (source == source_constant)
-                            continue;
-
-                        /* discard history for lower levels when doing runtime searches */
-                        if (is_visible)
-                            max_history_level = c->dirlevel - 1;
-
-                        searchstring=csi->clause[i][j]->str;
-                        *searchstring = '\0';
-
-                        id3 = audio_current_track();
-
-                        if (source == source_current_path && id3)
-                        {
-                            char *e;
-                            strmemccpy(searchstring, id3->path, SEARCHSTR_SIZE);
-                            e = strrchr(searchstring, '/');
-                            if (e)
-                                *e = '\0';
-                        }
-                        else if (source > source_runtime && id3)
-                        {
-
-                            int k = source-source_runtime;
-                            int offset = id3_to_search_mapping[k].id3_offset;
-                            char **src = (char**)((char*)id3 + offset);
-                            if (*src)
-                            {
-                                strmemccpy(searchstring, *src, SEARCHSTR_SIZE);
-                            }
-                        }
-                        else
-                        {
-                            rc = kbd_input(searchstring, SEARCHSTR_SIZE, NULL);
-                            if (rc < 0 || !searchstring[0])
-                            {
-                                tagtree_exit(c, is_visible);
-                                tree_unlock_cache(c);
-                                core_unpin(tagtree_handle);
-                                return 0;
-                            }
-                            if (csi->clause[i][j]->numeric)
-                                csi->clause[i][j]->numeric_data = atoi(searchstring);
-                        }
-
-
-                    }
+                    tagtree_exit(c, is_visible);
+                    tree_unlock_cache(c);
+                    core_unpin(tagtree_handle);
+                    return 0;
                 }
             }
             c->currtable = newextra;

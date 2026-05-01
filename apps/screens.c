@@ -57,6 +57,12 @@
 #include "ctype.h"
 #include "plugin.h"
 
+#if defined(SHANLING_M0PRO) && defined(HAVE_TAGCACHE)
+#include "tagtree.h"
+#include "tree.h"
+#include "root_menu.h"
+#endif
+
 #if CONFIG_CHARGING
 void charging_splash(void)
 {
@@ -828,6 +834,35 @@ refresh_info:
             if (key == ACTION_STD_OK)
             {
                 int header_id = id3_headers[info.info_id[id3_lists.selected_item/2]];
+
+#if defined(SHANLING_M0PRO) && defined(HAVE_TAGCACHE)
+                /* Jump to the matching "same as currently played track"
+                 * tagnavi entry for this row, if it has one. Falls through
+                 * to the view_text popup on any failure. */
+                if (is_curr_track_info)
+                {
+                    int dbfield = -1;
+                    switch (header_id)
+                    {
+                        case LANG_ID3_ARTIST:
+                        case LANG_ID3_ALBUMARTIST:
+                            dbfield = TAGTREE_GOTO_ARTIST; break;
+                        case LANG_ID3_ALBUM:
+                            dbfield = TAGTREE_GOTO_ALBUM; break;
+                        case LANG_ID3_COMPOSER:
+                            dbfield = TAGTREE_GOTO_COMPOSER; break;
+                        case LANG_ID3_TITLE:
+                            dbfield = TAGTREE_GOTO_TITLE; break;
+                    }
+                    if (dbfield >= 0 &&
+                        tagtree_subentries_do(tree_get_context(), dbfield))
+                    {
+                        ret = true;
+                        break;
+                    }
+                }
+#endif
+
                 char* title_and_text[2];
                 title_and_text[0] = str(header_id);
 
