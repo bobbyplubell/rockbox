@@ -754,7 +754,14 @@ unsigned gui_synclist_do_touchscreen(struct gui_synclist *list)
             {
                 line = (adj_y - (start_y - list->y_pos)) / line_height;
                 if (list_display_title(list, screen))
+                {
                     line -= 1;
+#ifdef SHANLING_M0PRO
+                    if (global_settings.list_title_extra > 0)
+                        line -= (global_settings.list_title_extra + line_height - 1)
+                                / line_height;
+#endif
+                }
             }
 
             int new_item = start_item + line;
