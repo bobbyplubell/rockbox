@@ -31,6 +31,12 @@
 #include "clk-x1000.h"
 #include "gpio-x1000.h"
 
+#ifdef SHANLING_M0PRO
+#include "i2c-x1000.h"
+#include "i2c-target.h"
+#include "axp-2101.h"
+#endif
+
 static bool dbg_clocks(void)
 {
     do {
@@ -149,6 +155,98 @@ static bool dbg_audio(void)
     return false;
 }
 
+#ifdef SHANLING_M0PRO
+/* Raw register dump for AXP2101 — used to verify what stock SPL programmed
+ * before Rockbox boots (CV target, charge current, iterm, gauge config)
+ * since we never write these explicitly. */
+static bool dbg_axp2101_regs(void)
+{
+    enum { PAGE_PARSED_CHG, PAGE_PARSED_BAT, PAGE_DUMP_LO, PAGE_DUMP_HI, NUM_PAGES };
+    int page = PAGE_PARSED_CHG;
+
+    while(1) {
+        lcd_clear_display();
+
+        if(page == PAGE_PARSED_CHG || page == PAGE_PARSED_BAT) {
+            int line = 0;
+            int r;
+            int vbat = axp2101_adc_read(AXP2101_ADC_VBAT_VOLTAGE);
+            int vbus = axp2101_adc_read(AXP2101_ADC_VBUS_VOLTAGE);
+            int vsys = axp2101_adc_read(AXP2101_ADC_VSYS_VOLTAGE);
+            int soc  = axp2101_egauge_read();
+
+            lcd_putsf(0, line++, "AXP2101 %s",
+                      page == PAGE_PARSED_CHG ? "charge" : "battery");
+            lcd_putsf(0, line++, "Vbat=%d Vbus=%d", vbat, vbus);
+            lcd_putsf(0, line++, "Vsys=%d SoC=%d%%", vsys, soc);
+            line++;
+
+            if(page == PAGE_PARSED_CHG) {
+                r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP2101_REG_PMU_STATUS1);
+                lcd_putsf(0, line++, "00 STAT1: %02x", r & 0xff);
+                r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP2101_REG_PMU_STATUS2);
+                lcd_putsf(0, line++, "01 STAT2: %02x", r & 0xff);
+                r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP2101_REG_INVOLTLIMITCTRL);
+                lcd_putsf(0, line++, "15 VINDPM: %02x", r & 0xff);
+                r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP2101_REG_INCURRLIMITCTRL);
+                lcd_putsf(0, line++, "16 IINLIM: %02x", r & 0xff);
+                r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP2101_REG_PERIPHERALCTRL);
+                lcd_putsf(0, line++, "18 PERIPH: %02x", r & 0xff);
+                r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP2101_REG_IPRECHG_SETTING);
+                lcd_putsf(0, line++, "61 IPRECHG: %02x", r & 0xff);
+                r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP2101_REG_ICC_SETTING);
+                lcd_putsf(0, line++, "62 ICC: %02x", r & 0xff);
+                r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP2101_REG_ITERM_SETTING);
+                lcd_putsf(0, line++, "63 ITERM: %02x", r & 0xff);
+                r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP2101_REG_CV_SETTING);
+                lcd_putsf(0, line++, "64 CV: %02x", r & 0xff);
+            } else {
+                r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP2101_REG_THERMREGTHRESH);
+                lcd_putsf(0, line++, "65 THERM: %02x", r & 0xff);
+                r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP2101_REG_CHARGETIMEOUT);
+                lcd_putsf(0, line++, "67 TIMEOUT: %02x", r & 0xff);
+                r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP2101_REG_BATTDETECTCTRL);
+                lcd_putsf(0, line++, "68 BATDET: %02x", r & 0xff);
+                r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP2101_REG_BATT_PARAMETER);
+                lcd_putsf(0, line++, "a1 BATPARM: %02x", r & 0xff);
+                r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP2101_REG_FUEL_GAUGE_CTRL);
+                lcd_putsf(0, line++, "a2 GAUGE: %02x", r & 0xff);
+                r = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, AXP2101_REG_BATT_PERCENTAGE);
+                lcd_putsf(0, line++, "a4 SOC: %02x", r & 0xff);
+            }
+        } else {
+            int base = (page == PAGE_DUMP_LO) ? 0x00 : 0x80;
+            lcd_putsf(0, 0, "Regs %02x-%02x", base, base + 0x7f);
+            for(int row = 0; row < 16; row++) {
+                int off = base + row * 8;
+                int v[8];
+                for(int c = 0; c < 8; c++)
+                    v[c] = i2c_reg_read1(AXP_PMU_BUS, AXP_PMU_ADDR, off + c) & 0xff;
+                lcd_putsf(0, row + 1, "%02x:%02x %02x %02x %02x %02x %02x %02x %02x",
+                          off, v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]);
+            }
+        }
+
+        lcd_update();
+
+        switch(get_action(CONTEXT_STD, HZ)) {
+        case ACTION_STD_CANCEL:
+            return false;
+        case ACTION_STD_PREV:
+        case ACTION_STD_PREVREPEAT:
+            page = (page + NUM_PAGES - 1) % NUM_PAGES;
+            break;
+        case ACTION_STD_NEXT:
+        case ACTION_STD_NEXTREPEAT:
+            page = (page + 1) % NUM_PAGES;
+            break;
+        default:
+            break;
+        }
+    }
+}
+#endif
+
 #ifdef X1000_CPUIDLE_STATS
 static bool dbg_cpuidle(void)
 {
@@ -200,6 +298,7 @@ static const struct {
 #endif
 #ifdef SHANLING_M0PRO
     {"Touchscreen", &dbg_shanlingm0pro_touchscreen},
+    {"AXP2101 regs", &dbg_axp2101_regs},
 #endif
 #ifdef HAVE_AXP_PMU
     {"Power stats", &axp_debug_menu},

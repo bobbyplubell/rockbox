@@ -219,7 +219,14 @@ static int option_talk(int selected_item, void * data)
 void option_select_next_val(const struct settings_list *setting,
                             bool previous, bool apply)
 {
-    bool repeated = get_action_statuscode(NULL) & ACTION_REPEAT;
+    /* Only suppress wrap-around for genuine held-button auto-repeat
+     * (BUTTON_REPEAT). The timing-based ACTION_REPEAT flag falsely triggers
+     * on rapid touchscreen taps (all share ACTION_TOUCHSCREEN within
+     * REPEAT_WINDOW_TICKS), which made shuffle/repeat get stuck on their last
+     * value in the quickscreen instead of cycling back around. */
+    int status_button = 0;
+    get_action_statuscode(&status_button);
+    bool repeated = (status_button & BUTTON_REPEAT) != 0;
 
     int val = 0;
     int *value = setting->setting;

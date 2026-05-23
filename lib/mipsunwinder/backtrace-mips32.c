@@ -214,8 +214,14 @@ void rb_backtrace_ctx(void* arg, unsigned* line)
 #endif
 
     do {
-        lcd_putsf(0, (*line)++, "%02d pc:%08lx sp:%08lx",
-                  ctx->depth, (unsigned long)ctx->pc, (unsigned long)ctx->sp);
+        lcd_putsf(0, (*line)++, "%02d pc:%08lx",
+                  ctx->depth, (unsigned long)ctx->pc);
+        lcd_putsf(0, (*line)++, "   sp:%08lx",
+                  (unsigned long)ctx->sp);
+        if (ctx->depth == 0 && (ctx->valid & (1 << MIPSBT_RA))) {
+            lcd_putsf(0, (*line)++, "   ra:%08lx",
+                      (unsigned long)ctx->reg[MIPSBT_RA]);
+        }
         lcd_update();
     } while(mips_bt_step(ctx));
 

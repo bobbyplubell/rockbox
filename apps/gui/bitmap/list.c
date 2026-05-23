@@ -788,6 +788,15 @@ unsigned gui_synclist_do_touchscreen(struct gui_synclist *list)
             else if (click_loc & TITLE_ICON)
                 action = ACTION_STD_MENU;
         }
+#ifdef SHANLING_M0PRO
+        else if ((click_loc & TITLE) && gevent.id == GESTURE_LONG_PRESS)
+        {
+            /* long-press the back-button title to jump to WPS from any
+               menu/tree depth — handled by menu.c, tree.c (via wpsscrn
+               return), bookmark.c, playlist_viewer.c */
+            action = ACTION_TREE_WPS;
+        }
+#endif
         else if (gevent.id != GESTURE_NONE && (click_loc & SCROLLBAR))
         {
             action = scrollbar_scroll(list, gevent.y);
